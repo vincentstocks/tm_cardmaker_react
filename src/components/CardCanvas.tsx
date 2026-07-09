@@ -9,10 +9,15 @@ import { EffectLayerRenderer } from './layers/EffectLayerRenderer';
 import { BaseLayerRenderer } from './layers/BaseLayerRenderer';
 import { Layer } from '../types';
 import { CARD_WIDTH_PX, CARD_HEIGHT_PX } from '../utils/cardDimensions';
+import { EditorOverlay } from './EditorOverlay';
 
 const SCALE_FACTOR = 0.65; // Scale down for display
 
-export function CardCanvas() {
+interface CardCanvasProps {
+  showOverlays?: boolean;
+}
+
+export function CardCanvas({ showOverlays = true }: CardCanvasProps) {
   const stageRef = useRef<Konva.Stage>(null);
   const { layers, selectedLayerId, selectLayer, updateLayer } = useCardStore();
   const baseLayer = layers.find((l) => l.type === 'base');
@@ -140,44 +145,47 @@ export function CardCanvas() {
 
   return (
     <div className="card-canvas-container">
-      <Stage
-        ref={stageRef}
-        width={stageWidth}
-        height={stageHeight}
-        onClick={handleStageClick}
-        onTap={handleStageClick}
-        style={{ border: '1px solid #333', backgroundColor: '#f0f0f0' }}
-      >
-        <KonvaLayer>
-          {layers.map((layer) => {
-            const isSelected = layer.id === selectedLayerId;
-            const commonProps = {
-              key: layer.id,
-              layer,
-              isSelected,
-              scaleFactor: SCALE_FACTOR,
-              onSelect: () => handleSelect(layer.id),
-              onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => handleDragEnd(layer.id, e),
-              onTransformEnd: (e: Konva.KonvaEventObject<Event>) => handleTransformEnd(layer.id, e),
-            };
+      <div className="card-canvas-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
+        <Stage
+          ref={stageRef}
+          width={stageWidth}
+          height={stageHeight}
+          onClick={handleStageClick}
+          onTap={handleStageClick}
+          style={{ border: '1px solid #333', backgroundColor: '#f0f0f0' }}
+        >
+          <KonvaLayer>
+            {layers.map((layer) => {
+              const isSelected = layer.id === selectedLayerId;
+              const commonProps = {
+                key: layer.id,
+                layer,
+                isSelected,
+                scaleFactor: SCALE_FACTOR,
+                onSelect: () => handleSelect(layer.id),
+                onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => handleDragEnd(layer.id, e),
+                onTransformEnd: (e: Konva.KonvaEventObject<Event>) => handleTransformEnd(layer.id, e),
+              };
 
-            switch (layer.type) {
-              case 'base':
-                return <BaseLayerRenderer {...commonProps} />;
-              case 'block':
-                return <BlockLayerRenderer {...commonProps} />;
-              case 'text':
-                return <TextLayerRenderer {...commonProps} />;
-              case 'production':
-                return <ProductionLayerRenderer {...commonProps} />;
-              case 'effect':
-                return <EffectLayerRenderer {...commonProps} />;
-              default:
-                return null;
-            }
-          })}
-        </KonvaLayer>
-      </Stage>
+              switch (layer.type) {
+                case 'base':
+                  return <BaseLayerRenderer {...commonProps} />;
+                case 'block':
+                  return <BlockLayerRenderer {...commonProps} />;
+                case 'text':
+                  return <TextLayerRenderer {...commonProps} />;
+                case 'production':
+                  return <ProductionLayerRenderer {...commonProps} />;
+                case 'effect':
+                  return <EffectLayerRenderer {...commonProps} />;
+                default:
+                  return null;
+              }
+            })}
+          </KonvaLayer>
+        </Stage>
+        <EditorOverlay containerWidth={stageWidth} containerHeight={stageHeight} visible={showOverlays} />
+      </div>
     </div>
   );
 }

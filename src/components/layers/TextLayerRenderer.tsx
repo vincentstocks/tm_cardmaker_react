@@ -1,8 +1,9 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Text, Transformer } from 'react-konva';
 import Konva from 'konva';
 import { TextLayer } from '../../types';
 import { LayerRendererProps } from './types';
+import { useCardStore } from '../../store/cardStore';
 
 // Map font names to CSS font-family
 const fontMap: Record<string, string> = {
@@ -22,30 +23,135 @@ export function TextLayerRenderer({
   const textLayer = layer as TextLayer;
   const nodeRef = useRef<Konva.Text>(null);
   const trRef = useRef<Konva.Transformer>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const { updateLayer } = useCardStore();
 
   useEffect(() => {
-    if (isSelected && trRef.current && nodeRef.current) {
+    if (isSelected && !isEditing && trRef.current && nodeRef.current) {
       trRef.current.nodes([nodeRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected]);
+  }, [isSelected, isEditing]);
 
   const fontFamily = fontMap[textLayer.font] || textLayer.font;
   const fontStyle = `${textLayer.style === 'italic' ? 'italic ' : ''}${textLayer.weight === 'bold' ? 'bold' : ''}`.trim() || 'normal';
 
-  // In the original app, x is the anchor point:
-  //   - "center": x is the horizontal center of the text
-  //   - "left": x is the left edge of the text
-  //   - "right": x is the right edge of the text
-  // In Konva, x is always the left edge of the bounding box, and `align`
-  // controls alignment within that box. So we need to offset x based on justify.
+  // Calculate render position based on justify mode
   let renderX = textLayer.x;
   if (textLayer.justify === 'center') {
     renderX = textLayer.x - textLayer.width / 2;
   } else if (textLayer.justify === 'right') {
     renderX = textLayer.x - textLayer.width;
   }
-  // "left" → x is already the left edge, no adjustment needed
+
+  const handleDblClick = useCallback(() => {
+    onSelect();
+    setIsEditing(true);
+
+    const textNode = nodeRef.current;
+    if (!textNode) return;
+
+    textNode.hide();
+    if (trRef.current) trRef.current.hide();
+    textNode.getLayer()?.batchDraw();
+
+    const stage = textNode.getStage();
+    if (!stage) return;
+    const stageContainer = stage.container();
+    const stageBox = stageContainer.getBoundingClientRect();
+    const textPosition = textNode.getAbsolutePosition();
+
+    // Create a minimal, clean input
+    const isMultiline = textLayer.data.includes('\n') || textLayer.data.length > 30;
+    const el = document.createElement(isMultiline ? 'textarea' : 'input') as HTMLTextAreaElement | HTMLInputElement;
+    document.body.appendChild(el);
+
+    el.value = textLayer.data;
+    const fontSize = Math.max(12, textLayer.height * scaleFactor);
+
+    Object.assign(el.style, {
+      position: 'fixed',
+      top: `${stageBox.top + textPosition.y - 2}px`,
+      left: `${stageBox.left + textPosition.x - 2}px`,
+      width: `${textNode.width() + 4}px`,
+      fontSize: `${fontSize}px`,
+      fontFamily,
+      fontStyle: textLayer.style,
+      fontWeight: textLayer.weight,
+      textAlign: textLayer.justify,
+      color: textLayer.color,
+      lineHeight: `${1 + textLayer.lineSpace / textLayer.height}`,
+      // Clean minimal styling
+      border: 'none',
+      borderBottom: '2px solid #e94560',
+      borderRadius: '0',
+      padding: '2px',
+      margin: '0',
+      background: 'transparent',
+      outline: 'none',
+      resize: 'none',
+      overflow: 'hidden',
+      zIndex: '10000',
+      boxSizing: 'border-box',
+      boxShadow: '0 2px 8px rgba(233, 69, 96, 0.2)',
+    });
+
+    if (isMultiline && el instanceof HTMLTextAreaElement) {
+      el.rows = textLayer.data.split('\n').length + 1;
+      el.style.minHeight = `${textNode.height() + 4}px`;
+    }
+
+    el.focus();
+    el.select();
+
+    // Auto-resize for textareas
+    if (isMultiline) {
+      const autoResize = () => {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      };
+      el.addEventListener('input', autoResize);
+      autoResize();
+    }
+
+    let finished = false;
+    const finishEdit = () => {
+      if (finished) return;
+      finished = true;
+      updateLayer(textLayer.id, { data: el.value });
+      document.body.removeChild(el);
+      textNode.show();
+      if (trRef.current) trRef.current.show();
+      textNode.getLayer()?.batchDraw();
+      setIsEditing(false);
+    };
+
+    el.addEventListener('blur', finishEdit);
+    el.addEventListener('keydown', ((e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        el.value = textLayer.data; // revert
+        el.blur();
+      }
+      if (e.key === 'Enter' && !isMultiline) {
+        el.blur();
+      }
+      if (e.key === 'Enter' && e.ctrlKey && isMultiline) {
+        el.blur();
+      }
+    }) as EventListener);
+  }, [textLayer, scaleFactor, fontFamily, onSelect, updateLayer]);
+
+  // Listen for programmatic inline edit triggers (e.g., from cost zone overlay)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.layerId === textLayer.id) {
+        setTimeout(() => handleDblClick(), 50);
+      }
+    };
+    window.addEventListener('trigger-inline-edit', handler);
+    return () => window.removeEventListener('trigger-inline-edit', handler);
+  }, [textLayer.id, handleDblClick]);
 
   return (
     <>
@@ -64,10 +170,12 @@ export function TextLayerRenderer({
         draggable
         onClick={onSelect}
         onTap={onSelect}
+        onDblClick={handleDblClick}
+        onDblTap={handleDblClick}
         onDragEnd={onDragEnd}
         onTransformEnd={onTransformEnd}
       />
-      {isSelected && (
+      {isSelected && !isEditing && (
         <Transformer
           ref={trRef}
           rotateEnabled={false}

@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Toolbar } from './components/Toolbar';
 import { CardCanvas } from './components/CardCanvas';
+import { CardPreview } from './components/CardPreview';
 import { LayerPanel } from './components/LayerPanel';
 import { AssetPicker } from './components/AssetPicker';
 import { PropertyEditor } from './components/PropertyEditor';
@@ -10,6 +11,8 @@ import './App.css';
 
 function App() {
   const { undo, redo, isProjectStarted } = useCardStore();
+  const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
+  const [showOverlays, setShowOverlays] = useState(true);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -40,7 +43,38 @@ function App() {
           <AssetPicker />
         </aside>
         <main className="canvas-area">
-          <CardCanvas />
+          <div className="view-controls">
+            <div className="view-toggle">
+              <button
+                className={`view-toggle-btn ${viewMode === 'editor' ? 'active' : ''}`}
+                onClick={() => setViewMode('editor')}
+              >
+                Editor
+              </button>
+              <button
+                className={`view-toggle-btn ${viewMode === 'preview' ? 'active' : ''}`}
+                onClick={() => setViewMode('preview')}
+              >
+                Preview
+              </button>
+            </div>
+            {viewMode === 'editor' && (
+              <button
+                className={`overlay-toggle-btn ${showOverlays ? 'active' : ''}`}
+                onClick={() => setShowOverlays(!showOverlays)}
+                title={showOverlays ? 'Hide editable zones' : 'Show editable zones'}
+              >
+                {showOverlays ? '◻ Zones' : '◻ Zones'}
+              </button>
+            )}
+          </div>
+          <div className="view-container">
+            {viewMode === 'editor' ? (
+              <CardCanvas showOverlays={showOverlays} />
+            ) : (
+              <CardPreview />
+            )}
+          </div>
         </main>
         <aside className="sidebar-right">
           <LayerPanel />

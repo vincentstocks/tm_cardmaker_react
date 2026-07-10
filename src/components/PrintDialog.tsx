@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { useCardStore } from '../store/cardStore';
 import { Printer, Plus, Minus, X, Download } from 'lucide-react';
@@ -161,7 +161,6 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
     let curX = margin;
     let curY = margin;
     let rowHeight = 0;
-    let isFirstPage = true;
 
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i];

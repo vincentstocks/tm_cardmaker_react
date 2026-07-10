@@ -21,6 +21,7 @@ export interface BlockLayer {
   width: number;
   height: number;
   showOtherBg: boolean;
+  customPath?: string; // data URL or external URL for user-uploaded images
 }
 
 export interface TextLayer {

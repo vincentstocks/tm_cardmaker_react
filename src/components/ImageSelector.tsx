@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCardStore } from '../store/cardStore';
 import { CARD_WIDTH_PX, CARD_HEIGHT_PX } from '../utils/cardDimensions';
+import { BlockLayer } from '../types';
 
 interface ImageSelectorProps {
   x: number;
@@ -15,8 +16,7 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState('');
   const [tab, setTab] = useState<'upload' | 'url'>('upload');
-  const { layers, updateLayer, deleteLayer } = useCardStore();
-  const addLayer = useCardStore.getState().addLayer;
+  const { layers, deleteLayer } = useCardStore();
 
   // Close on click outside
   useEffect(() => {
@@ -45,7 +45,7 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
     // Find and remove any existing custom image in the area
     const existingImg = layers.find(l =>
       l.type === 'block' &&
-      ((l as any).customPath || (l as any).blockId?.startsWith('custom-img-'))
+      ((l as BlockLayer).customPath || (l as BlockLayer).blockId?.startsWith('custom-img-'))
     );
 
     if (existingImg) {
@@ -56,8 +56,8 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
-      const layerData = {
-        type: 'block' as const,
+      const layerData: Omit<BlockLayer, 'id'> = {
+        type: 'block',
         name: 'Card Image',
         blockId: `custom-img-${Date.now()}`,
         x: imageZonePos.x,
@@ -68,7 +68,7 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
         customPath: imagePath,
       };
 
-      useCardStore.getState().addLayer(layerData as any);
+      useCardStore.getState().addLayer(layerData);
 
       // Move the image to just before the template block (index 1),
       // so it's behind the template and shows through the transparent hole
@@ -82,8 +82,8 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
       // CORS failed — retry without crossOrigin to at least get dimensions
       const img2 = new Image();
       img2.onload = () => {
-        const layerData = {
-          type: 'block' as const,
+        const layerData: Omit<BlockLayer, 'id'> = {
+          type: 'block',
           name: 'Card Image',
           blockId: `custom-img-${Date.now()}`,
           x: imageZonePos.x,
@@ -94,7 +94,7 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
           customPath: imagePath,
         };
 
-        useCardStore.getState().addLayer(layerData as any);
+        useCardStore.getState().addLayer(layerData);
 
         const allLayers = useCardStore.getState().layers;
         const newLayerIndex = allLayers.length - 1;

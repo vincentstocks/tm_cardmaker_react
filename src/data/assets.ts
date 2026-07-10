@@ -38,12 +38,9 @@ export const blockAssets: BlockAsset[] = [
   { id: 'misc-party-leader', category: 'misc', label: 'Party Leader', src: 'party_leader', path: '/assets/misc/party_leader.png' },
   { id: 'misc-corp-tag-holder', category: 'misc', label: 'Tag Holder', src: 'corp_tag_holder', path: '/assets/misc/corp_tag_holder.png' },
   { id: 'misc-effect', category: 'misc', label: 'Effect (bg)', src: 'effect', path: '/assets/misc/effect.png' },
-  { id: 'misc-asset', category: 'misc', label: 'Asset', src: 'asset', path: '/assets/misc/asset.png' },
-  { id: 'misc-colonytile', category: 'misc', label: 'Colony Tile', src: 'colonytile', path: '/assets/misc/colonytile.png' },
-  { id: 'misc-population', category: 'misc', label: 'Population', src: 'population', path: '/assets/misc/population.png' },
 
   // Parties
-  { id: 'party-bureacrats', category: 'parties', label: 'Bureacrats', src: 'bureacrats', path: '/assets/parties/bureacrats.png' },
+  { id: 'party-bureacrats', category: 'parties', label: 'Bureaucrats', src: 'bureacrats', path: '/assets/parties/bureacrats.png' },
   { id: 'party-centrists', category: 'parties', label: 'Centrists', src: 'centrists', path: '/assets/parties/centrists.png' },
   { id: 'party-empower', category: 'parties', label: 'Empower', src: 'empower', path: '/assets/parties/empower.png' },
   { id: 'party-greens', category: 'parties', label: 'Greens', src: 'greens', path: '/assets/parties/greens.png' },
@@ -80,8 +77,6 @@ export const blockAssets: BlockAsset[] = [
   { id: 'res-titanium', category: 'resources', label: 'Titanium', src: 'titanium', path: '/assets/resources/titanium.png', otherBgId: 'res-other-player-bg' },
   { id: 'res-TR', category: 'resources', label: 'TR', src: 'TR', path: '/assets/resources/TR.png', otherBgId: 'res-other-player-bg' },
   { id: 'res-wild', category: 'resources', label: 'Wild', src: 'wild', path: '/assets/resources/wild.png', otherBgId: 'res-other-player-bg' },
-  { id: 'res-asteroid', category: 'resources', label: 'Asteroid', src: 'asteroid', path: '/assets/resources/asteroid.png', otherBgId: 'res-other-player-bg' },
-  { id: 'res-ore', category: 'resources', label: 'Ore', src: 'ore', path: '/assets/resources/ore.png', otherBgId: 'res-other-player-bg' },
 
   // Tags
   { id: 'tag-animal', category: 'tags', label: 'Animal', src: 'animal', path: '/assets/tags/animal.png', otherBgId: 'tag-other-player-bg' },
@@ -105,8 +100,6 @@ export const blockAssets: BlockAsset[] = [
   { id: 'tag-venus', category: 'tags', label: 'Venus', src: 'venus', path: '/assets/tags/venus.png', otherBgId: 'tag-other-player-bg' },
   { id: 'tag-wild', category: 'tags', label: 'Wild', src: 'wild', path: '/assets/tags/wild.png', otherBgId: 'tag-other-player-bg' },
   { id: 'tag-multitag', category: 'tags', label: 'Multitag', src: 'multitag', path: '/assets/tags/multitag.png', otherBgId: 'tag-other-player-bg' },
-  { id: 'tag-tourism', category: 'tags', label: 'Tourism', src: 'tourism', path: '/assets/tags/tourism.png', otherBgId: 'tag-other-player-bg' },
-  { id: 'tag-mercury', category: 'tags', label: 'Mercury', src: 'mercury', path: '/assets/tags/mercury.png', otherBgId: 'tag-other-player-bg' },
 
   // Tiles
   { id: 'tile-city', category: 'tiles', label: 'City', src: 'city', path: '/assets/tiles/city.png', otherBgId: 'tile-other-player-bg' },
@@ -199,6 +192,7 @@ export const presets: Record<string, BlockPreset[]> = {
   ],
   tiles: [
     { label: 'Standard tile', x: sx(413), y: sy(643), width: 113, height: sy(142) },
+    { label: 'Square tile', x: sx(413), y: sy(643), width: sx(130), height: sx(130) },
   ],
   requisites: [
     { label: 'Max', x: sx(180), y: sy(92), width: sx(200), height: sy(60) },
@@ -238,8 +232,3 @@ export const presets: Record<string, BlockPreset[]> = {
     { label: '3x width', width: sx(325) },
   ],
 };
-
-// Get presets for a given asset category
-export function getPresetsForCategory(category: string): BlockPreset[] {
-  return presets[category] || [];
-}

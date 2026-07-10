@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Stage, Layer as KonvaLayer, Line } from 'react-konva';
 import Konva from 'konva';
 import { useCardStore } from '../store/cardStore';
@@ -7,11 +7,45 @@ import { TextLayerRenderer } from './layers/TextLayerRenderer';
 import { ProductionLayerRenderer } from './layers/ProductionLayerRenderer';
 import { EffectLayerRenderer } from './layers/EffectLayerRenderer';
 import { BaseLayerRenderer } from './layers/BaseLayerRenderer';
-import { Layer } from '../types';
-import { CARD_WIDTH_PX, CARD_HEIGHT_PX } from '../utils/cardDimensions';
+import { Layer, BaseLayer, TextLayer } from '../types';
+import { CARD_WIDTH_PX, CARD_HEIGHT_PX, DISPLAY_SCALE } from '../utils/cardDimensions';
 import { EditorOverlay } from './EditorOverlay';
 
-const SCALE_FACTOR = 0.65; // Scale down for display
+const SCALE_FACTOR = DISPLAY_SCALE;
+
+/**
+ * Capture the Konva stage as a data URL at 600 DPI (2x template resolution).
+ * Hides transformers during capture and restores them after.
+ * Returns null if the canvas is tainted.
+ */
+function captureStageAsDataUrl(stage: Konva.Stage, baseLayer: BaseLayer): string | null {
+  stage.find('Transformer').forEach((t: any) => t.hide());
+  stage.draw();
+
+  const baseWidth = baseLayer.width;
+  const baseHeight = baseLayer.height;
+  const isLandscape = baseWidth > baseHeight;
+  const TEMPLATE_W = 826;
+  const TEMPLATE_H = 1126;
+  const EXPORT_SCALE = 2; // 2x = 600 DPI
+  const exportWidth = (isLandscape ? TEMPLATE_H : TEMPLATE_W) * EXPORT_SCALE;
+  const pixelRatio = exportWidth / (baseWidth * SCALE_FACTOR);
+
+  const dataUrl = stage.toDataURL({
+    mimeType: 'image/png',
+    pixelRatio,
+    width: baseWidth * SCALE_FACTOR,
+    height: baseHeight * SCALE_FACTOR,
+  });
+
+  stage.find('Transformer').forEach((t: any) => t.show());
+  stage.draw();
+
+  if (!dataUrl || !dataUrl.includes(',')) {
+    return null;
+  }
+  return dataUrl;
+}
 
 /**
  * Inject a pHYs chunk into a PNG to set DPI metadata.
@@ -148,9 +182,9 @@ function getLayerBounds(layer: any, scaleFactor: number) {
 export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanvasProps) {
   const stageRef = useRef<Konva.Stage>(null);
   const { layers, selectedLayerId, selectLayer, updateLayer, cardName } = useCardStore();
-  const baseLayer = layers.find((l) => l.type === 'base');
-  const stageWidth = baseLayer ? (baseLayer as any).width * SCALE_FACTOR : CARD_WIDTH_PX * SCALE_FACTOR;
-  const stageHeight = baseLayer ? (baseLayer as any).height * SCALE_FACTOR : CARD_HEIGHT_PX * SCALE_FACTOR;
+  const baseLayer = layers.find((l) => l.type === 'base') as BaseLayer | undefined;
+  const stageWidth = baseLayer ? baseLayer.width * SCALE_FACTOR : CARD_WIDTH_PX * SCALE_FACTOR;
+  const stageHeight = baseLayer ? baseLayer.height * SCALE_FACTOR : CARD_HEIGHT_PX * SCALE_FACTOR;
   const [guides, setGuides] = useState<GuideLine[]>([]);
 
   const handleDragMove = useCallback(
@@ -255,7 +289,7 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
       // Text layers store x as the anchor point (center/left/right), not the box left edge
       // and y as the baseline, not the top of the rendered box
       if (layer && layer.type === 'text') {
-        const textLayer = layer as any;
+        const textLayer = layer as TextLayer;
         if (textLayer.justify === 'center') {
           newX = newX + Math.round(textLayer.width / 2);
         } else if (textLayer.justify === 'right') {
@@ -298,7 +332,7 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
           return; // No actual transform, skip
         }
 
-        const textLayer = layer as any;
+        const textLayer = layer as TextLayer;
         const newWidth = Math.round((node.width() * scaleX) / SCALE_FACTOR);
 
         const updates: any = { width: newWidth };
@@ -332,36 +366,8 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
       const currentStage = stageRef.current;
       if (!currentStage) return;
 
-      // Hide transformers
-      currentStage.find('Transformer').forEach((t: any) => t.hide());
-      currentStage.draw();
-
-      // Export at template native resolution (826×1126 or 1126×826 for landscape)
-      // This matches the original app's canvas size
-      const baseWidth = (baseLayer as any).width;
-      const baseHeight = (baseLayer as any).height;
-      const isLandscape = baseWidth > baseHeight;
-      const TEMPLATE_W = 826;
-      const TEMPLATE_H = 1126;
-      const EXPORT_SCALE = 2; // 2x = 600 DPI for higher print quality
-      const exportWidth = (isLandscape ? TEMPLATE_H : TEMPLATE_W) * EXPORT_SCALE;
-
-      // Export at the ratio needed to go from display size to template size
-      const pixelRatio = exportWidth / (baseWidth * SCALE_FACTOR);
-
-      const dataUrl = currentStage.toDataURL({
-        mimeType: 'image/png',
-        pixelRatio,
-        width: baseWidth * SCALE_FACTOR,
-        height: baseHeight * SCALE_FACTOR,
-      });
-
-      // Show transformers again
-      currentStage.find('Transformer').forEach((t: any) => t.show());
-      currentStage.draw();
-
-      if (!dataUrl || !dataUrl.includes(',')) {
-        console.error('Export failed: canvas may be tainted by cross-origin images');
+      const dataUrl = captureStageAsDataUrl(currentStage, baseLayer as BaseLayer);
+      if (!dataUrl) {
         alert('Export failed. If you uploaded an image from a URL, try uploading it from your device instead.');
         return;
       }
@@ -390,7 +396,10 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
   }, [baseLayer, selectLayer, cardName]);
 
   // Expose export function globally for the toolbar
-  (window as any).__exportCardAsPng = exportAsPng;
+  useEffect(() => {
+    (window as any).__exportCardAsPng = exportAsPng;
+    return () => { delete (window as any).__exportCardAsPng; };
+  }, [exportAsPng]);
 
   // Print as A4 PDF with correct physical card size
   const printAsPdf = useCallback(() => {
@@ -402,32 +411,15 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
       const currentStage = stageRef.current;
       if (!currentStage) return;
 
-      currentStage.find('Transformer').forEach((t: any) => t.hide());
-      currentStage.draw();
-
-      const baseWidth = (baseLayer as any).width;
-      const baseHeight = (baseLayer as any).height;
-      const isLandscape = baseWidth > baseHeight;
-      const TEMPLATE_W = 826;
-      const TEMPLATE_H = 1126;
-      const EXPORT_SCALE = 2; // 600 DPI for print quality
-      const exportWidth = (isLandscape ? TEMPLATE_H : TEMPLATE_W) * EXPORT_SCALE;
-      const pixelRatio = exportWidth / (baseWidth * SCALE_FACTOR);
-
-      const dataUrl = currentStage.toDataURL({
-        mimeType: 'image/png',
-        pixelRatio,
-        width: baseWidth * SCALE_FACTOR,
-        height: baseHeight * SCALE_FACTOR,
-      });
-
-      currentStage.find('Transformer').forEach((t: any) => t.show());
-      currentStage.draw();
-
-      if (!dataUrl || !dataUrl.includes(',')) {
+      const dataUrl = captureStageAsDataUrl(currentStage, baseLayer as BaseLayer);
+      if (!dataUrl) {
         alert('Export failed. If you uploaded an image from a URL, try uploading it from your device instead.');
         return;
       }
+
+      const baseWidth = (baseLayer as BaseLayer).width;
+      const baseHeight = (baseLayer as BaseLayer).height;
+      const isLandscape = baseWidth > baseHeight;
 
       // Template at 300 DPI: 826/300*25.4 = 69.9mm, 1126/300*25.4 = 95.3mm
       const cardWidthMm = isLandscape ? 95.3 : 69.9;
@@ -438,37 +430,21 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
     }, 100);
   }, [baseLayer, selectLayer, cardName]);
 
-  (window as any).__printCardAsPdf = printAsPdf;
+  useEffect(() => {
+    (window as any).__printCardAsPdf = printAsPdf;
+    return () => { delete (window as any).__printCardAsPdf; };
+  }, [printAsPdf]);
 
   // Expose a function to get the card as dataUrl (for print dialog)
   const getCardDataUrl = useCallback(() => {
     if (!stageRef.current || !baseLayer) return '';
-    const currentStage = stageRef.current;
-    currentStage.find('Transformer').forEach((t: any) => t.hide());
-    currentStage.draw();
-
-    const baseWidth = (baseLayer as any).width;
-    const TEMPLATE_W = 826;
-    const TEMPLATE_H = 1126;
-    const EXPORT_SCALE = 2; // 600 DPI
-    const isLandscape = baseWidth > (baseLayer as any).height;
-    const exportWidth = (isLandscape ? TEMPLATE_H : TEMPLATE_W) * EXPORT_SCALE;
-    const pixelRatio = exportWidth / (baseWidth * SCALE_FACTOR);
-
-    const dataUrl = currentStage.toDataURL({
-      mimeType: 'image/png',
-      pixelRatio,
-      width: baseWidth * SCALE_FACTOR,
-      height: (baseLayer as any).height * SCALE_FACTOR,
-    });
-
-    currentStage.find('Transformer').forEach((t: any) => t.show());
-    currentStage.draw();
-
-    return dataUrl || '';
+    return captureStageAsDataUrl(stageRef.current, baseLayer as BaseLayer) || '';
   }, [baseLayer]);
 
-  (window as any).__getCardDataUrl = getCardDataUrl;
+  useEffect(() => {
+    (window as any).__getCardDataUrl = getCardDataUrl;
+    return () => { delete (window as any).__getCardDataUrl; };
+  }, [getCardDataUrl]);
 
   return (
     <div className="card-canvas-container">

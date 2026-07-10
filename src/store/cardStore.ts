@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Layer, BlockLayer, TextLayer, ProductionLayer, EffectLayer, LineLayer, TemplateLayerDef } from '../types';
+import { Layer, BaseLayer, BlockLayer, TextLayer, ProductionLayer, EffectLayer, LineLayer, TemplateLayerDef } from '../types';
 import { cardTemplates } from '../data/templates';
 import { blockAssets, presets } from '../data/assets';
 import { CARD_WIDTH_PX, CARD_HEIGHT_PX } from '../utils/cardDimensions';
@@ -31,8 +31,11 @@ function getDefaultPreset(asset: { id: string; category: string; label: string }
       if (asset.id === 'vp-negative') return categoryPresets.find(p => p.label === 'Negative');
       return categoryPresets.find(p => p.label === 'Standard') || categoryPresets[0];
     }
-    case 'tiles':
-      return categoryPresets[0];
+    case 'tiles': {
+      const squareTiles = ['tile-greenery', 'tile-off-world-city', 'tile-trade', 'tile-colony'];
+      if (squareTiles.includes(asset.id)) return categoryPresets[1]; // Square
+      return categoryPresets[0]; // Standard hex
+    }
     case 'misc': {
       // Match misc items by label
       if (asset.id === 'misc-megacredit') return categoryPresets.find(p => p.label === 'MC');
@@ -112,17 +115,6 @@ interface CardState {
   // Export
   getBaseLayer: () => Layer | undefined;
 }
-
-const defaultLayers: Layer[] = [
-  {
-    id: 'layer-base',
-    type: 'base',
-    name: 'Base',
-    width: CARD_WIDTH_PX,
-    height: CARD_HEIGHT_PX,
-    color: '#ffffff',
-  },
-];
 
 function pushHistory(state: { layers: Layer[]; history: Layer[][]; historyIndex: number }) {
   const newHistory = state.history.slice(0, state.historyIndex + 1);
@@ -267,10 +259,10 @@ export const useCardStore = create<CardState>((set, get) => ({
   },
 
   addTextLayer: () => {
-    const baseLayer = get().layers.find(l => l.type === 'base');
-    const centerX = baseLayer ? Math.round((baseLayer as any).width / 2) : 375;
-    const centerY = baseLayer ? Math.round((baseLayer as any).height / 2) : 520;
-    const width = baseLayer ? Math.round((baseLayer as any).width * 0.85) : 638;
+    const baseLayer = get().layers.find(l => l.type === 'base') as BaseLayer | undefined;
+    const centerX = baseLayer ? Math.round(baseLayer.width / 2) : 375;
+    const centerY = baseLayer ? Math.round(baseLayer.height / 2) : 520;
+    const width = baseLayer ? Math.round(baseLayer.width * 0.85) : 638;
 
     const layer: Omit<TextLayer, 'id'> = {
       type: 'text',

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import { Image, Transformer } from 'react-konva';
 import useImage from 'use-image';
 import Konva from 'konva';
@@ -34,8 +34,8 @@ export function BlockLayerRenderer({
 }: LayerRendererProps) {
   const block = layer as BlockLayer;
   const asset = blockAssets.find((a) => a.id === block.blockId);
-  const imagePath = (block as any).customPath || asset?.path || '';
-  const isCustom = !!(block as any).customPath || block.blockId.startsWith('custom-img-');
+  const imagePath = block.customPath || asset?.path || '';
+  const isCustom = !!block.customPath || block.blockId.startsWith('custom-img-');
   const [image] = useImageWithFallback(imagePath, isCustom);
   const nodeRef = useRef<Konva.Image>(null);
   const trRef = useRef<Konva.Transformer>(null);

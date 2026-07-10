@@ -3,10 +3,10 @@ import { useCardStore } from '../store/cardStore';
 import { TagSelector } from './TagSelector';
 import { RequirementSelector } from './RequirementSelector';
 import { ImageSelector } from './ImageSelector';
-import { CARD_WIDTH_PX, CARD_HEIGHT_PX, CARD_LANDSCAPE_WIDTH_PX, CARD_LANDSCAPE_HEIGHT_PX } from '../utils/cardDimensions';
-import { TextLayer } from '../types';
+import { CARD_WIDTH_PX, CARD_HEIGHT_PX, CARD_LANDSCAPE_WIDTH_PX, DISPLAY_SCALE } from '../utils/cardDimensions';
+import { TextLayer, BaseLayer, BlockLayer, Layer } from '../types';
 
-const SCALE = 0.65;
+const SCALE = DISPLAY_SCALE;
 
 // Portrait tag slot positions (in print pixels, from presets - original 826×1126)
 const PORTRAIT_TAG_SLOTS = [
@@ -18,7 +18,6 @@ const PORTRAIT_TAG_SIZE = Math.round(110 * CARD_WIDTH_PX / 826);
 
 // Landscape tag slot positions — original app uses sx/sy (portrait scaling) for ALL tags
 const LW = CARD_LANDSCAPE_WIDTH_PX;  // 1039
-const LH = CARD_LANDSCAPE_HEIGHT_PX; // 750
 
 // Prelude tags: uses portrait scaling (sx/sy from 826/1126 → 750/1039)
 const PRELUDE_TAG_SLOTS = [
@@ -54,14 +53,14 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
   const [reqSelectorOpen, setReqSelectorOpen] = useState<{ x: number; y: number } | null>(null);
   const [imageSelectorOpen, setImageSelectorOpen] = useState<{ x: number; y: number } | null>(null);
 
-  const baseLayer = layers.find(l => l.type === 'base');
-  const isLandscape = baseLayer && (baseLayer as any).width > (baseLayer as any).height;
+  const baseLayer = layers.find(l => l.type === 'base') as BaseLayer | undefined;
+  const isLandscape = baseLayer && baseLayer.width > baseLayer.height;
 
   if (!visible) return null;
 
   // Get actual positions from the store layers
   const costLayer = layers.find(l => l.name === 'Cost') as TextLayer | undefined;
-  const reqLayer = layers.find(l => l.name?.includes('Requirement') || l.name === 'No Requirement');
+  const reqLayer = layers.find(l => l.name?.includes('Requirement') || l.name === 'No Requirement') as BlockLayer | undefined;
   const cardNameLayer = layers.find(l => l.name === 'Card Name') as TextLayer | undefined;
   const descriptionLayer = layers.find(l => l.name === 'Description') as TextLayer | undefined;
   const flavorLayer = layers.find(l => l.name === 'Flavor Text') as TextLayer | undefined;
@@ -69,11 +68,11 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
 
   // Dynamic image area: between Card Name bottom and FAN MADE top
   // Detect if this is a blue card
-  const templateBlock = layers.find(l => l.type === 'block' && (l as any).blockId?.startsWith('tpl-'));
-  const isBlueCard = templateBlock && (templateBlock as any).blockId?.includes('blue');
+  const templateBlock = layers.find(l => l.type === 'block' && (l as BlockLayer).blockId?.startsWith('tpl-')) as BlockLayer | undefined;
+  const isBlueCard = templateBlock && templateBlock.blockId?.includes('blue');
 
   // Select tag slots and size based on orientation and template type
-  const isCorporation = templateBlock && (templateBlock as any).blockId?.includes('corporation');
+  const isCorporation = templateBlock && templateBlock.blockId?.includes('corporation');
   const tagSlots = isLandscape
     ? (isCorporation ? CORP_TAG_SLOTS : PRELUDE_TAG_SLOTS)
     : PORTRAIT_TAG_SLOTS;
@@ -92,8 +91,8 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
     }
 
     if (isBlueCard) {
-      const cardH = baseLayer ? (baseLayer as any).height : CARD_HEIGHT_PX;
-      const blockId = (templateBlock as any).blockId as string;
+      const cardH = baseLayer ? baseLayer.height : CARD_HEIGHT_PX;
+      const blockId = templateBlock?.blockId || '';
 
       if (blockId.includes('blue-big-top')) {
         // Blue Big Top: 1/4 height, top edge at card center
@@ -163,10 +162,10 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
 
   // Requirement zone: derive from actual requirement layer
   const reqZone = reqLayer ? {
-    left: (reqLayer as any).x * SCALE,
-    top: (reqLayer as any).y * SCALE,
-    width: Math.max((reqLayer as any).width * SCALE, 40),
-    height: (reqLayer as any).height * SCALE,
+    left: reqLayer.x * SCALE,
+    top: reqLayer.y * SCALE,
+    width: Math.max(reqLayer.width * SCALE, 40),
+    height: reqLayer.height * SCALE,
   } : null;
 
   const handleTagClick = (slotIndex: number, e: React.MouseEvent) => {
@@ -208,9 +207,9 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
     const currentLayers = useCardStore.getState().layers;
     const existingTag = currentLayers.find(l =>
       l.type === 'block' &&
-      (l as any).blockId?.startsWith('tag-') &&
-      Math.abs((l as any).x - pos.x) < 30 &&
-      Math.abs((l as any).y - pos.y) < 30
+      (l as BlockLayer).blockId?.startsWith('tag-') &&
+      Math.abs((l as BlockLayer).x - pos.x) < 30 &&
+      Math.abs((l as BlockLayer).y - pos.y) < 30
     );
 
     if (existingTag) {
@@ -228,7 +227,7 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
         y: pos.y,
         width: tagSize,
         height: tagSize,
-      } as any);
+      } as Partial<Layer>);
     }
 
     setTagSelectorOpen(null);
@@ -243,8 +242,8 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
           currentLayers.some(l =>
             l.type === 'block' &&
             l.name !== 'Tag Holder' &&
-            Math.abs((l as any).x - slot.x) < 15 &&
-            Math.abs((l as any).y - slot.y) < 15
+            Math.abs((l as BlockLayer).x - slot.x) < 15 &&
+            Math.abs((l as BlockLayer).y - slot.y) < 15
           )
         ).length;
 
@@ -254,7 +253,7 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
         const holderX = holderXPresets[Math.min(tagCount, 2)];
         updateLayer(tagHolderLayer.id, {
           x: Math.round(holderX * LW / 1126),
-        } as any);
+        } as Partial<Layer>);
       }
     }
   };
@@ -266,7 +265,7 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
     const currentLayers = useCardStore.getState().layers;
     const existingReq = currentLayers.find(l =>
       l.type === 'block' &&
-      (l as any).blockId?.startsWith('req-')
+      (l as BlockLayer).blockId?.startsWith('req-')
     );
 
     if (existingReq) {
@@ -295,20 +294,20 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
       l.type === 'block' &&
       l.name !== 'No Requirement' &&
       !l.name?.includes('Requirement') &&
-      !(l as any).blockId?.startsWith('tpl-') &&
-      !(l as any).blockId?.startsWith('req-') &&
-      !(l as any).blockId?.startsWith('tag-') &&
-      Math.abs((l as any).y - imgPos.y) < 60
+      !(l as BlockLayer).blockId?.startsWith('tpl-') &&
+      !(l as BlockLayer).blockId?.startsWith('req-') &&
+      !(l as BlockLayer).blockId?.startsWith('tag-') &&
+      Math.abs((l as BlockLayer).y - imgPos.y) < 60
     );
 
     if (existingImg) {
-      updateLayer(existingImg.id, { blockId: imageBlockId } as any);
+      updateLayer(existingImg.id, { blockId: imageBlockId } as Partial<Layer>);
     } else {
       addBlock(imageBlockId);
       const allLayers = useCardStore.getState().layers;
       const newLayer = allLayers[allLayers.length - 1];
       if (newLayer) {
-        updateLayer(newLayer.id, imgPos as any);
+        updateLayer(newLayer.id, imgPos as Partial<Layer>);
       }
     }
 

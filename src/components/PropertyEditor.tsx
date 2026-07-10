@@ -279,12 +279,12 @@ function PositionSizeProperties({ layer }: { layer: ProductionLayer | EffectLaye
               const idx = Number(e.target.value);
               if (!isNaN(idx)) {
                 const preset = categoryPresets[idx];
-                const updates: Partial<Layer> = {};
-                if (preset.x !== undefined) (updates as any).x = preset.x;
-                if (preset.y !== undefined) (updates as any).y = preset.y;
-                if (preset.width !== undefined) (updates as any).width = preset.width;
-                if (preset.height !== undefined) (updates as any).height = preset.height;
-                updateLayer(layer.id, updates);
+                const updates: Record<string, number> = {};
+                if (preset.x !== undefined) updates.x = preset.x;
+                if (preset.y !== undefined) updates.y = preset.y;
+                if (preset.width !== undefined) updates.width = preset.width;
+                if (preset.height !== undefined) updates.height = preset.height;
+                updateLayer(layer.id, updates as Partial<Layer>);
               }
             }}
           >

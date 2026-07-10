@@ -16,6 +16,9 @@ export const CARD_LANDSCAPE_HEIGHT_PX = CARD_WIDTH_PX;  // 750
 export const SCALE_X = CARD_WIDTH_PX / 826;       // ~0.908
 export const SCALE_Y = CARD_HEIGHT_PX / 1126;     // ~0.923
 
+// Display scale factor (canvas pixels to screen pixels)
+export const DISPLAY_SCALE = 0.65;
+
 // Scale factors for landscape (original was 1126×826)
 export const LANDSCAPE_SCALE_X = CARD_LANDSCAPE_WIDTH_PX / 1126;  // ~0.923
 export const LANDSCAPE_SCALE_Y = CARD_LANDSCAPE_HEIGHT_PX / 826;  // ~0.908

@@ -53,7 +53,6 @@ export function TextLayerRenderer({
     const textNode = nodeRef.current;
     if (!textNode) return;
 
-    textNode.hide();
     if (trRef.current) trRef.current.hide();
     textNode.getLayer()?.batchDraw();
 
@@ -125,9 +124,7 @@ export function TextLayerRenderer({
       finished = true;
       updateLayer(textLayer.id, { data: el.value });
       document.body.removeChild(el);
-      textNode.show();
       if (trRef.current) trRef.current.show();
-      textNode.getLayer()?.batchDraw();
       setIsEditing(false);
     };
 
@@ -173,6 +170,7 @@ export function TextLayerRenderer({
         align={textLayer.justify}
         lineHeight={1 + textLayer.lineSpace / textLayer.height}
         opacity={opacity}
+        visible={!isEditing}
         draggable
         onClick={onSelect}
         onTap={onSelect}

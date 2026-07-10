@@ -22,9 +22,9 @@ const LH = CARD_LANDSCAPE_HEIGHT_PX; // 750
 
 // Prelude tags: uses portrait scaling (sx/sy from 826/1126 → 750/1039)
 const PRELUDE_TAG_SLOTS = [
-  { x: Math.round(937 * CARD_WIDTH_PX / 826), y: Math.round(67 * CARD_HEIGHT_PX / 1126) },
-  { x: Math.round(822 * CARD_WIDTH_PX / 826), y: Math.round(67 * CARD_HEIGHT_PX / 1126) },
-  { x: Math.round(708 * CARD_WIDTH_PX / 826), y: Math.round(67 * CARD_HEIGHT_PX / 1126) },
+  { x: Math.round(950 * CARD_WIDTH_PX / 826), y: Math.round(78 * CARD_HEIGHT_PX / 1126) },
+  { x: Math.round(835 * CARD_WIDTH_PX / 826), y: Math.round(78 * CARD_HEIGHT_PX / 1126) },
+  { x: Math.round(721 * CARD_WIDTH_PX / 826), y: Math.round(78 * CARD_HEIGHT_PX / 1126) },
 ];
 
 // Corporation tags: in original 1126×826 landscape coords
@@ -143,13 +143,14 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
     };
   };
 
-  // Cost zone: use a tighter width centered on the cost x position
-  // Cost zone indicator (visual only — doesn't affect text placement)
+  // Cost zone: square centered on cost text position
   const costZone = costLayer ? (() => {
     const displaySize = costLayer.height * SCALE * 1.3;
+    const centerX = costLayer.x * SCALE;
+    const centerY = (costLayer.y - costLayer.height * 0.9 + costLayer.height * 0.5) * SCALE;
     return {
-      left: costLayer.x * SCALE - displaySize / 2 + 3,
-      top: (costLayer.y - costLayer.height * 0.9) * SCALE - 6,
+      left: centerX - displaySize / 2 + 1,
+      top: centerY - displaySize / 2 - 1,
       width: displaySize,
       height: displaySize,
     };
@@ -175,7 +176,11 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
   const handleTextClick = (layer: TextLayer | undefined) => {
     if (layer) {
       selectLayer(layer.id);
-      window.dispatchEvent(new CustomEvent('trigger-inline-edit', { detail: { layerId: layer.id } }));
+      // Delay to allow React to re-render (selected layer moves to second pass)
+      // and the new component instance to mount and register its event listener
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('trigger-inline-edit', { detail: { layerId: layer.id } }));
+      }, 200);
     }
   };
 

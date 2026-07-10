@@ -19,6 +19,7 @@ export function TextLayerRenderer({
   opacity,
   onSelect,
   onDragEnd,
+  onDragMove,
   onTransformEnd,
 }: LayerRendererProps) {
   const textLayer = layer as TextLayer;
@@ -72,21 +73,22 @@ export function TextLayerRenderer({
 
     Object.assign(el.style, {
       position: 'fixed',
-      top: `${stageBox.top + textPosition.y - 2}px`,
-      left: `${stageBox.left + textPosition.x - 2}px`,
-      width: `${textNode.width() + 4}px`,
+      top: `${stageBox.top + textPosition.y}px`,
+      left: `${stageBox.left + textPosition.x}px`,
+      width: `${textNode.width()}px`,
+      height: `${fontSize * 1.2}px`,
       fontSize: `${fontSize}px`,
       fontFamily,
       fontStyle: textLayer.style,
       fontWeight: textLayer.weight,
       textAlign: textLayer.justify,
       color: textLayer.color,
-      lineHeight: `${1 + textLayer.lineSpace / textLayer.height}`,
+      lineHeight: '1',
       // Clean minimal styling
       border: 'none',
       borderBottom: '2px solid #e94560',
       borderRadius: '0',
-      padding: '2px',
+      padding: '0',
       margin: '0',
       background: 'transparent',
       outline: 'none',
@@ -99,7 +101,9 @@ export function TextLayerRenderer({
 
     if (isMultiline && el instanceof HTMLTextAreaElement) {
       el.rows = textLayer.data.split('\n').length + 1;
-      el.style.minHeight = `${textNode.height() + 4}px`;
+      el.style.height = 'auto';
+      el.style.minHeight = `${textNode.height()}px`;
+      el.style.lineHeight = `${1 + textLayer.lineSpace / textLayer.height}`;
     }
 
     el.focus();
@@ -147,7 +151,7 @@ export function TextLayerRenderer({
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.layerId === textLayer.id) {
-        setTimeout(() => handleDblClick(), 50);
+        setTimeout(() => handleDblClick(), 150);
       }
     };
     window.addEventListener('trigger-inline-edit', handler);
@@ -175,6 +179,7 @@ export function TextLayerRenderer({
         onDblClick={handleDblClick}
         onDblTap={handleDblClick}
         onDragEnd={onDragEnd}
+        onDragMove={onDragMove}
         onTransformEnd={onTransformEnd}
       />
       {isSelected && !isEditing && (

@@ -5,13 +5,24 @@ import { LayerPanel } from './components/LayerPanel';
 import { AssetPicker } from './components/AssetPicker';
 import { PropertyEditor } from './components/PropertyEditor';
 import { TemplateSelector } from './components/TemplateSelector';
+import { PrintDialog } from './components/PrintDialog';
 import { useCardStore } from './store/cardStore';
-import { Grid3x3 } from 'lucide-react';
+import { Grid3x3, Magnet } from 'lucide-react';
 import './App.css';
 
 function App() {
-  const { undo, redo, isProjectStarted, selectLayer } = useCardStore();
+  const { undo, redo, isProjectStarted, selectLayer, deleteLayer, selectedLayerId } = useCardStore();
   const [showOverlays, setShowOverlays] = useState(true);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const [printDialogCards, setPrintDialogCards] = useState<{name: string; dataUrl: string; widthMm: number; heightMm: number}[] | null>(null);
+
+  // Register the print dialog opener globally so CardCanvas can call it
+  useEffect(() => {
+    (window as any).__openPrintDialog = (cards: {name: string; dataUrl: string; widthMm: number; heightMm: number}[]) => {
+      setPrintDialogCards(cards);
+    };
+    return () => { delete (window as any).__openPrintDialog; };
+  }, []);
 
   const handleCanvasAreaClick = (e: React.MouseEvent) => {
     // Only deselect if clicking directly on the canvas-area background, not its children
@@ -23,18 +34,32 @@ function App() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in input fields
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
       if (e.ctrlKey && e.key === 'z') {
         e.preventDefault();
         undo();
       } else if (e.ctrlKey && e.key === 'y') {
         e.preventDefault();
         redo();
+      } else if (e.ctrlKey && e.key === 'f') {
+        e.preventDefault();
+        setShowOverlays(v => !v);
+      } else if (e.ctrlKey && e.key === 'g') {
+        e.preventDefault();
+        setSnapEnabled(v => !v);
+      } else if (e.key === 'Delete') {
+        if (selectedLayerId) {
+          deleteLayer(selectedLayerId);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
+  }, [undo, redo, selectedLayerId, deleteLayer]);
 
   // Show template selector if no project is started
   if (!isProjectStarted) {
@@ -57,9 +82,16 @@ function App() {
             >
               <Grid3x3 size={12} /> Zones
             </button>
+            <button
+              className={`overlay-toggle-btn ${snapEnabled ? 'active' : ''}`}
+              onClick={() => setSnapEnabled(!snapEnabled)}
+              title={snapEnabled ? 'Disable snap guides' : 'Enable snap guides'}
+            >
+              <Magnet size={12} /> Snap
+            </button>
           </div>
           <div className="view-container">
-            <CardCanvas showOverlays={showOverlays} />
+            <CardCanvas showOverlays={showOverlays} snapEnabled={snapEnabled} />
           </div>
         </main>
         <aside className="sidebar-right">
@@ -68,8 +100,14 @@ function App() {
         </aside>
       </div>
       <footer className="app-footer">
-        Inspired by the original website <a href="https://github.com/SliceOfBread/tm_cardmaker" target="_blank" rel="noopener noreferrer">TM Card Maker</a> by SliceOfBread, rebuilt with a focus on usability. This website is not affiliated with Terraforming Mars or Fryxgames in any way.
+        Inspired by the original website <a href="https://github.com/SliceOfBread/tm_cardmaker" target="_blank" rel="noopener noreferrer">TM Card Maker</a> by SliceOfBread, rebuilt with a focus on usability. This website is not affiliated with Terraforming Mars or Fryxgames in any way. | <a href="https://github.com/vincentstocks/tm_cardmaker_react" target="_blank" rel="noopener noreferrer">Source code</a> (GPL-3.0)
       </footer>
+      {printDialogCards && (
+        <PrintDialog
+          initialCards={printDialogCards}
+          onClose={() => setPrintDialogCards(null)}
+        />
+      )}
     </div>
   );
 }

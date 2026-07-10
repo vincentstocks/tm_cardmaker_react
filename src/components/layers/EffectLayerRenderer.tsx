@@ -10,6 +10,7 @@ export function EffectLayerRenderer({
   scaleFactor,
   onSelect,
   onDragEnd,
+  onDragMove,
   onTransformEnd,
 }: LayerRendererProps) {
   const effect = layer as EffectLayer;
@@ -39,6 +40,7 @@ export function EffectLayerRenderer({
         onClick={onSelect}
         onTap={onSelect}
         onDragEnd={onDragEnd}
+        onDragMove={onDragMove}
         onTransformEnd={onTransformEnd}
       >
         {/* Outer border (gradient simulated with solid gray) */}

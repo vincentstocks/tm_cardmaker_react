@@ -183,6 +183,126 @@ body {
   color: var(--accent-hover);
 }
 
+.dropdown-item-empty {
+  color: var(--text-secondary);
+  cursor: default;
+  font-style: italic;
+}
+
+.dropdown-item-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dropdown-item-row .dropdown-item {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dropdown-item-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-left: 12px;
+}
+
+.dropdown-item-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.dropdown-item-delete:hover {
+  background: rgba(220, 60, 60, 0.2);
+  color: #e55;
+}
+
+.dropdown-menu-load {
+  min-width: 240px;
+}
+
+/* Card name input */
+.toolbar-card-name {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: var(--text-primary);
+  font-size: 13px;
+  width: 160px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.toolbar-card-name:focus {
+  border-color: var(--accent);
+}
+
+.toolbar-card-name::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Name prompt modal */
+.name-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.name-prompt {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  padding: 24px;
+  width: 340px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 1px var(--gold-dim);
+}
+
+.name-prompt-title {
+  font-size: 15px;
+  color: var(--gold);
+  margin: 0 0 16px;
+}
+
+.name-prompt-input {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+
+.name-prompt-input:focus {
+  border-color: var(--accent);
+}
+
+.name-prompt-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.name-prompt-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* Sidebars */
 .sidebar-left,
 .sidebar-right {
@@ -989,4 +1109,176 @@ body {
 .req-selector-desc {
   font-size: 10px;
   color: var(--text-secondary);
+}
+
+/* Print Dialog */
+.print-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.print-dialog {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+.print-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.print-dialog-header h2 {
+  font-size: 16px;
+  color: var(--gold);
+  margin: 0;
+}
+
+.print-dialog-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.print-dialog-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.print-dialog-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.print-dialog-section {
+  margin-bottom: 16px;
+}
+
+.print-dialog-section h3 {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.print-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.print-card-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.print-card-thumb {
+  width: 28px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 2px;
+}
+
+.print-card-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.print-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.print-card-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--accent);
+}
+
+.print-card-btn-danger:hover {
+  background: rgba(220, 60, 60, 0.2);
+  color: #e55;
+}
+
+.print-saved-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.print-saved-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.print-saved-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.print-saved-btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.print-empty {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.print-dialog-info {
+  padding: 8px 12px;
+  background: rgba(80, 160, 255, 0.1);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.print-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
 }

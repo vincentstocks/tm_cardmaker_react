@@ -52,28 +52,59 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
       deleteLayer(existingImg.id);
     }
 
-    // Directly add a block layer with the custom path
-    const layerData = {
-      type: 'block' as const,
-      name: 'Card Image',
-      blockId: `custom-img-${Date.now()}`,
-      x: imageZonePos.x,
-      y: imageZonePos.y,
-      width: imageZonePos.width,
-      height: imageZonePos.height,
-      showOtherBg: false,
-      customPath: imagePath,
+    // Load the image to get its native dimensions
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const layerData = {
+        type: 'block' as const,
+        name: 'Card Image',
+        blockId: `custom-img-${Date.now()}`,
+        x: imageZonePos.x,
+        y: imageZonePos.y,
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+        showOtherBg: false,
+        customPath: imagePath,
+      };
+
+      useCardStore.getState().addLayer(layerData as any);
+
+      // Move the image to just before the template block (index 1),
+      // so it's behind the template and shows through the transparent hole
+      const allLayers = useCardStore.getState().layers;
+      const newLayerIndex = allLayers.length - 1;
+      if (newLayerIndex > 1) {
+        useCardStore.getState().moveLayer(newLayerIndex, 1);
+      }
     };
+    img.onerror = () => {
+      // CORS failed — retry without crossOrigin to at least get dimensions
+      const img2 = new Image();
+      img2.onload = () => {
+        const layerData = {
+          type: 'block' as const,
+          name: 'Card Image',
+          blockId: `custom-img-${Date.now()}`,
+          x: imageZonePos.x,
+          y: imageZonePos.y,
+          width: img2.naturalWidth,
+          height: img2.naturalHeight,
+          showOtherBg: false,
+          customPath: imagePath,
+        };
 
-    useCardStore.getState().addLayer(layerData as any);
+        useCardStore.getState().addLayer(layerData as any);
 
-    // Move the image to just before the template block (index 1),
-    // so it's behind the template and shows through the transparent hole
-    const allLayers = useCardStore.getState().layers;
-    const newLayerIndex = allLayers.length - 1;
-    if (newLayerIndex > 1) {
-      useCardStore.getState().moveLayer(newLayerIndex, 1);
-    }
+        const allLayers = useCardStore.getState().layers;
+        const newLayerIndex = allLayers.length - 1;
+        if (newLayerIndex > 1) {
+          useCardStore.getState().moveLayer(newLayerIndex, 1);
+        }
+      };
+      img2.src = imagePath;
+    };
+    img.src = imagePath;
 
     onClose();
   };

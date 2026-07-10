@@ -8,5 +8,6 @@ export interface LayerRendererProps {
   opacity?: number;
   onSelect: () => void;
   onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void;
+  onDragMove?: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onTransformEnd: (e: Konva.KonvaEventObject<Event>) => void;
 }

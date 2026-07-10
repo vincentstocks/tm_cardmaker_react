@@ -52,7 +52,8 @@ export function TemplateSelector() {
 
         <p className="template-selector-credits">
           Inspired by the original website <a href="https://github.com/SliceOfBread/tm_cardmaker" target="_blank" rel="noopener noreferrer">TM Card Maker</a> by SliceOfBread, rebuilt with a focus on usability.<br/>
-          This website is not affiliated with Terraforming Mars or Fryxgames in any way.
+          This website is not affiliated with Terraforming Mars or Fryxgames in any way.<br/>
+          <a href="https://github.com/vincentstocks/tm_cardmaker_react" target="_blank" rel="noopener noreferrer">Source code</a> (GPL-3.0)
         </p>
       </div>
     </div>

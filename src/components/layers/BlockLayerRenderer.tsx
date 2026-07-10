@@ -1,10 +1,26 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Image, Transformer } from 'react-konva';
 import useImage from 'use-image';
 import Konva from 'konva';
 import { BlockLayer } from '../../types';
 import { blockAssets } from '../../data/assets';
 import { LayerRendererProps } from './types';
+
+function useImageWithFallback(url: string, isCustom: boolean): [HTMLImageElement | undefined, string] {
+  const [corsImage, corsStatus] = useImage(url, 'anonymous');
+  const [noCorsImage, noCorsStatus] = useImage(isCustom && corsStatus === 'failed' ? url : '', undefined);
+
+  if (!isCustom) {
+    return [corsImage, corsStatus];
+  }
+  if (corsStatus === 'loaded') {
+    return [corsImage, 'loaded'];
+  }
+  if (corsStatus === 'failed') {
+    return [noCorsImage, noCorsStatus];
+  }
+  return [undefined, corsStatus];
+}
 
 export function BlockLayerRenderer({
   layer,
@@ -13,12 +29,14 @@ export function BlockLayerRenderer({
   opacity,
   onSelect,
   onDragEnd,
+  onDragMove,
   onTransformEnd,
 }: LayerRendererProps) {
   const block = layer as BlockLayer;
   const asset = blockAssets.find((a) => a.id === block.blockId);
   const imagePath = (block as any).customPath || asset?.path || '';
-  const [image] = useImage(imagePath, 'anonymous');
+  const isCustom = !!(block as any).customPath || block.blockId.startsWith('custom-img-');
+  const [image] = useImageWithFallback(imagePath, isCustom);
   const nodeRef = useRef<Konva.Image>(null);
   const trRef = useRef<Konva.Transformer>(null);
 
@@ -43,6 +61,7 @@ export function BlockLayerRenderer({
         onClick={onSelect}
         onTap={onSelect}
         onDragEnd={onDragEnd}
+        onDragMove={onDragMove}
         onTransformEnd={onTransformEnd}
       />
       {isSelected && (

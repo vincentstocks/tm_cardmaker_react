@@ -63,11 +63,18 @@ function getDefaultPreset(asset: { id: string; category: string; label: string }
   }
 }
 
+interface SavedProject {
+  name: string;
+  layers: Layer[];
+  savedAt: number;
+}
+
 interface CardState {
   // Layer data
   layers: Layer[];
   selectedLayerId: string | null;
   isProjectStarted: boolean;
+  cardName: string;
 
   // Undo/Redo
   history: Layer[][];
@@ -75,6 +82,7 @@ interface CardState {
 
   // Actions
   selectLayer: (id: string | null) => void;
+  setCardName: (name: string) => void;
   addLayer: (layer: Omit<Layer, 'id'>) => void;
   updateLayer: (id: string, updates: Partial<Layer>) => void;
   deleteLayer: (id: string) => void;
@@ -94,6 +102,12 @@ interface CardState {
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+
+  // Save/Load
+  saveProject: () => void;
+  loadProject: (name: string) => void;
+  deleteProject: (name: string) => void;
+  getSavedProjects: () => SavedProject[];
 
   // Export
   getBaseLayer: () => Layer | undefined;
@@ -118,14 +132,32 @@ function pushHistory(state: { layers: Layer[]; history: Layer[][]; historyIndex:
   return { history: newHistory, historyIndex: newHistory.length - 1 };
 }
 
+const STORAGE_KEY = 'tm-card-maker-projects';
+
+function getSavedProjectsFromStorage(): SavedProject[] {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveProjectsToStorage(projects: SavedProject[]): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+}
+
 export const useCardStore = create<CardState>((set, get) => ({
   layers: [],
   selectedLayerId: null,
   isProjectStarted: false,
+  cardName: '',
   history: [[]],
   historyIndex: 0,
 
   selectLayer: (id) => set({ selectedLayerId: id }),
+
+  setCardName: (name) => set({ cardName: name }),
 
   addLayer: (layerData) => {
     const id = generateId();
@@ -326,6 +358,59 @@ export const useCardStore = create<CardState>((set, get) => ({
 
   canUndo: () => get().historyIndex > 0,
   canRedo: () => get().historyIndex < get().history.length - 1,
+
+  saveProject: () => {
+    const { layers, cardName } = get();
+    const name = cardName.trim() || 'Untitled';
+    const projects = getSavedProjectsFromStorage();
+    
+    // Update existing or add new
+    const existingIndex = projects.findIndex(p => p.name === name);
+    const project: SavedProject = {
+      name,
+      layers: JSON.parse(JSON.stringify(layers)),
+      savedAt: Date.now(),
+    };
+
+    if (existingIndex >= 0) {
+      projects[existingIndex] = project;
+    } else {
+      projects.push(project);
+    }
+
+    saveProjectsToStorage(projects);
+  },
+
+  loadProject: (name) => {
+    const projects = getSavedProjectsFromStorage();
+    const project = projects.find(p => p.name === name);
+    if (!project) return;
+
+    // Find the highest layer ID number to continue from
+    let maxId = 0;
+    for (const layer of project.layers) {
+      const num = parseInt(layer.id.replace('layer-', ''), 10);
+      if (num > maxId) maxId = num;
+    }
+    nextId = maxId + 1;
+
+    set({
+      layers: JSON.parse(JSON.stringify(project.layers)),
+      selectedLayerId: null,
+      isProjectStarted: true,
+      cardName: project.name,
+      history: [JSON.parse(JSON.stringify(project.layers))],
+      historyIndex: 0,
+    });
+  },
+
+  deleteProject: (name) => {
+    const projects = getSavedProjectsFromStorage();
+    const filtered = projects.filter(p => p.name !== name);
+    saveProjectsToStorage(filtered);
+  },
+
+  getSavedProjects: () => getSavedProjectsFromStorage(),
 
   getBaseLayer: () => get().layers.find((l) => l.type === 'base'),
 }));

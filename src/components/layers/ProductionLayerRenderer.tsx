@@ -10,6 +10,7 @@ export function ProductionLayerRenderer({
   scaleFactor,
   onSelect,
   onDragEnd,
+  onDragMove,
   onTransformEnd,
 }: LayerRendererProps) {
   const prod = layer as ProductionLayer;
@@ -39,6 +40,7 @@ export function ProductionLayerRenderer({
         onClick={onSelect}
         onTap={onSelect}
         onDragEnd={onDragEnd}
+        onDragMove={onDragMove}
         onTransformEnd={onTransformEnd}
       >
         {/* Inner fill (production brown) */}

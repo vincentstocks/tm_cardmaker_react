@@ -21,7 +21,7 @@ export function TemplateSelector() {
   return (
     <div className="template-selector">
       <div className="template-selector-content">
-        <h1 className="template-selector-title">TM Card Maker</h1>
+        <h1 className="template-selector-title">Create your own Terraforming Mars cards!</h1>
         <p className="template-selector-subtitle">
           Choose a card template to get started
         </p>
@@ -49,6 +49,11 @@ export function TemplateSelector() {
             );
           })}
         </div>
+
+        <p className="template-selector-credits">
+          Inspired by the original website <a href="https://github.com/SliceOfBread/tm_cardmaker" target="_blank" rel="noopener noreferrer">TM Card Maker</a> by SliceOfBread, rebuilt with a focus on usability.<br/>
+          This website is not affiliated with Terraforming Mars or Fryxgames in any way.
+        </p>
       </div>
     </div>
   );

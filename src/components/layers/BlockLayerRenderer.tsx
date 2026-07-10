@@ -10,13 +10,15 @@ export function BlockLayerRenderer({
   layer,
   isSelected,
   scaleFactor,
+  opacity,
   onSelect,
   onDragEnd,
   onTransformEnd,
 }: LayerRendererProps) {
   const block = layer as BlockLayer;
   const asset = blockAssets.find((a) => a.id === block.blockId);
-  const [image] = useImage(asset?.path || '');
+  const imagePath = (block as any).customPath || asset?.path || '';
+  const [image] = useImage(imagePath, 'anonymous');
   const nodeRef = useRef<Konva.Image>(null);
   const trRef = useRef<Konva.Transformer>(null);
 
@@ -36,6 +38,7 @@ export function BlockLayerRenderer({
         y={block.y * scaleFactor}
         width={block.width * scaleFactor}
         height={block.height * scaleFactor}
+        opacity={opacity}
         draggable
         onClick={onSelect}
         onTap={onSelect}

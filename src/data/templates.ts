@@ -34,7 +34,7 @@ export const cardTemplates: CardTemplate[] = [
     layers: [
       { type: 'base', name: 'Base', color: '#ffffff', width: W, height: H },
       { type: 'block', name: 'Green Card', blockId: 'tpl-green-normal', x: 0, y: 0, width: W, height: H, showOtherBg: false },
-      { type: 'text', name: 'Cost', data: '0', ...p(115, 151), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
+      { type: 'text', name: 'Cost', data: '0', ...p(116, 153), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'block', name: 'No Requirement', blockId: 'req-normal', ...p(179, 97), width: pw(22), height: ph(59), showOtherBg: false },
       { type: 'text', name: 'Card Name', data: 'CARD NAME', ...p(413, 214), width: pw(600), height: ph(46), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'FAN MADE', data: 'FAN MADE', ...p(413, 612), width: pw(400), height: ph(24), color: '#24770d', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
@@ -48,7 +48,7 @@ export const cardTemplates: CardTemplate[] = [
     layers: [
       { type: 'base', name: 'Base', color: '#ffffff', width: W, height: H },
       { type: 'block', name: 'Green Big Bottom', blockId: 'tpl-green-big-bottom', x: 0, y: 0, width: W, height: H, showOtherBg: false },
-      { type: 'text', name: 'Cost', data: '0', ...p(115, 151), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
+      { type: 'text', name: 'Cost', data: '0', ...p(116, 153), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'block', name: 'No Requirement', blockId: 'req-normal', ...p(179, 97), width: pw(22), height: ph(59), showOtherBg: false },
       { type: 'text', name: 'Card Name', data: 'CARD NAME', ...p(413, 214), width: pw(600), height: ph(46), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'FAN MADE', data: 'FAN MADE', ...p(413, 562), width: pw(400), height: ph(24), color: '#24770d', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
@@ -62,7 +62,7 @@ export const cardTemplates: CardTemplate[] = [
     layers: [
       { type: 'base', name: 'Base', color: '#ffffff', width: W, height: H },
       { type: 'block', name: 'Green Small Bottom', blockId: 'tpl-green-small-bottom', x: 0, y: 0, width: W, height: H, showOtherBg: false },
-      { type: 'text', name: 'Cost', data: '0', ...p(115, 151), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
+      { type: 'text', name: 'Cost', data: '0', ...p(116, 153), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'block', name: 'No Requirement', blockId: 'req-normal', ...p(179, 97), width: pw(22), height: ph(59), showOtherBg: false },
       { type: 'text', name: 'Card Name', data: 'CARD NAME', ...p(413, 214), width: pw(600), height: ph(46), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'FAN MADE', data: 'FAN MADE', ...p(413, 664), width: pw(400), height: ph(24), color: '#24770d', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
@@ -76,7 +76,7 @@ export const cardTemplates: CardTemplate[] = [
     layers: [
       { type: 'base', name: 'Base', color: '#ffffff', width: W, height: H },
       { type: 'block', name: 'Blue Card', blockId: 'tpl-blue-normal', x: 0, y: 0, width: W, height: H, showOtherBg: false },
-      { type: 'text', name: 'Cost', data: '0', ...p(115, 151), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
+      { type: 'text', name: 'Cost', data: '0', ...p(116, 153), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'block', name: 'No Requirement', blockId: 'req-normal', ...p(179, 97), width: pw(22), height: ph(59), showOtherBg: false },
       { type: 'text', name: 'Card Name', data: 'CARD NAME', ...p(413, 214), width: pw(600), height: ph(46), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'FAN MADE', data: 'FAN MADE', ...p(413, 798), width: pw(400), height: ph(24), color: '#0c5e84', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
@@ -92,7 +92,7 @@ export const cardTemplates: CardTemplate[] = [
     layers: [
       { type: 'base', name: 'Base', color: '#ffffff', width: W, height: H },
       { type: 'block', name: 'Blue Big Bottom', blockId: 'tpl-blue-big-bottom', x: 0, y: 0, width: W, height: H, showOtherBg: false },
-      { type: 'text', name: 'Cost', data: '0', ...p(115, 151), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
+      { type: 'text', name: 'Cost', data: '0', ...p(116, 153), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'block', name: 'No Requirement', blockId: 'req-normal', ...p(179, 97), width: pw(22), height: ph(59), showOtherBg: false },
       { type: 'text', name: 'Card Name', data: 'CARD NAME', ...p(413, 214), width: pw(600), height: ph(46), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'FAN MADE', data: 'FAN MADE', ...p(413, 753), width: pw(702), height: ph(24), color: '#0c5e84', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
@@ -108,7 +108,7 @@ export const cardTemplates: CardTemplate[] = [
     layers: [
       { type: 'base', name: 'Base', color: '#ffffff', width: W, height: H },
       { type: 'block', name: 'Blue Big Top', blockId: 'tpl-blue-big-top', x: 0, y: 0, width: W, height: H, showOtherBg: false },
-      { type: 'text', name: 'Cost', data: '0', ...p(115, 151), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
+      { type: 'text', name: 'Cost', data: '0', ...p(116, 153), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'block', name: 'No Requirement', blockId: 'req-normal', ...p(179, 97), width: pw(22), height: ph(59), showOtherBg: false },
       { type: 'text', name: 'Card Name', data: 'CARD NAME', ...p(413, 214), width: pw(600), height: ph(46), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'FAN MADE', data: 'FAN MADE', ...p(413, 849), width: pw(702), height: ph(24), color: '#0c5e84', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
@@ -124,7 +124,7 @@ export const cardTemplates: CardTemplate[] = [
     layers: [
       { type: 'base', name: 'Base', color: '#ffffff', width: W, height: H },
       { type: 'block', name: 'Red Card', blockId: 'tpl-red-normal', x: 0, y: 0, width: W, height: H, showOtherBg: false },
-      { type: 'text', name: 'Cost', data: '0', ...p(115, 151), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
+      { type: 'text', name: 'Cost', data: '0', ...p(116, 153), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'block', name: 'No Requirement', blockId: 'req-normal', ...p(179, 97), width: pw(22), height: ph(59), showOtherBg: false },
       { type: 'text', name: 'Card Name', data: 'CARD NAME', ...p(413, 214), width: pw(600), height: ph(46), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'FAN MADE', data: 'FAN MADE', ...p(413, 685), width: pw(400), height: ph(24), color: '#c36a17', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
@@ -138,7 +138,7 @@ export const cardTemplates: CardTemplate[] = [
     layers: [
       { type: 'base', name: 'Base', color: '#ffffff', width: W, height: H },
       { type: 'block', name: 'Red Small Bottom', blockId: 'tpl-red-small-bottom', x: 0, y: 0, width: W, height: H, showOtherBg: false },
-      { type: 'text', name: 'Cost', data: '0', ...p(115, 151), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
+      { type: 'text', name: 'Cost', data: '0', ...p(116, 153), width: pw(120), height: ph(66), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'block', name: 'No Requirement', blockId: 'req-normal', ...p(179, 97), width: pw(22), height: ph(59), showOtherBg: false },
       { type: 'text', name: 'Card Name', data: 'CARD NAME', ...p(413, 214), width: pw(600), height: ph(46), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'FAN MADE', data: 'FAN MADE', ...p(413, 718), width: pw(400), height: ph(24), color: '#c36a17', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
@@ -171,8 +171,8 @@ export const cardTemplates: CardTemplate[] = [
       { type: 'text', name: 'EFFECT', data: 'E F F E C T', ...l(800, 333), width: lw(400), height: lh(22), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'FAN MADE', data: 'FAN MADE', ...l(198, 736), width: lw(400), height: lh(24), color: '#c3c3c3', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
       { type: 'text', name: 'CORPORATION', data: 'C O R P O R A T I O N', ...l(563, 109), width: lw(600), height: lh(24), color: '#000000', font: 'Prototype', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'center' },
-      { type: 'text', name: 'Description', data: 'Card description\nMultiple lines\nand they can be much, much, much longer\n\'V space\' controls the spacing between lines', ...l(110, 560), width: LTW, height: lh(22), color: '#000000', font: 'Pagella', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'left' },
-      { type: 'text', name: 'Flavor Text', data: 'Flavor text!', ...l(563, 723), width: LTW, height: lh(22), color: '#000000', font: 'Pagella', style: 'italic', weight: 'bold', lineSpace: 4, justify: 'center' },
+      { type: 'text', name: 'Description', data: 'Card description\nMultiple lines\nand they can be much, much, much longer\n\'V space\' controls the spacing between lines', ...l(110, 330), width: lw(470), height: lh(22), color: '#000000', font: 'Pagella', style: 'normal', weight: 'normal', lineSpace: 4, justify: 'left' },
+      { type: 'text', name: 'Flavor Text', data: 'Flavor text!', ...l(285, 723), width: lw(470), height: lh(22), color: '#000000', font: 'Pagella', style: 'italic', weight: 'bold', lineSpace: 4, justify: 'center' },
     ],
   },
 ];

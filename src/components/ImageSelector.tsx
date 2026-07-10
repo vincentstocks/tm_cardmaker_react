@@ -15,7 +15,8 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState('');
   const [tab, setTab] = useState<'upload' | 'url'>('upload');
-  const { layers, addBlock, updateLayer } = useCardStore();
+  const { layers, updateLayer, deleteLayer } = useCardStore();
+  const addLayer = useCardStore.getState().addLayer;
 
   // Close on click outside
   useEffect(() => {
@@ -41,34 +42,39 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
   };
 
   const placeImage = (imagePath: string) => {
-    // Create a custom block layer with the provided image path
-    // We'll add it as a block with a custom path by creating a unique ID
-    const customId = `custom-img-${Date.now()}`;
-
-    // Find existing image in the area or add new
+    // Find and remove any existing custom image in the area
     const existingImg = layers.find(l =>
       l.type === 'block' &&
-      !(l as any).blockId?.startsWith('tpl-') &&
-      !(l as any).blockId?.startsWith('req-') &&
-      !(l as any).blockId?.startsWith('tag-') &&
-      l.name !== 'No Requirement' &&
-      Math.abs((l as any).y - imageZonePos.y) < 60
+      ((l as any).customPath || (l as any).blockId?.startsWith('custom-img-'))
     );
 
     if (existingImg) {
-      updateLayer(existingImg.id, { blockId: customId, customPath: imagePath } as any);
-    } else {
-      // Add a new layer with custom image path
-      addBlock(customId);
-      const allLayers = useCardStore.getState().layers;
-      const newLayer = allLayers[allLayers.length - 1];
-      if (newLayer) {
-        updateLayer(newLayer.id, {
-          ...imageZonePos,
-          customPath: imagePath,
-        } as any);
-      }
+      deleteLayer(existingImg.id);
     }
+
+    // Directly add a block layer with the custom path
+    const layerData = {
+      type: 'block' as const,
+      name: 'Card Image',
+      blockId: `custom-img-${Date.now()}`,
+      x: imageZonePos.x,
+      y: imageZonePos.y,
+      width: imageZonePos.width,
+      height: imageZonePos.height,
+      showOtherBg: false,
+      customPath: imagePath,
+    };
+
+    useCardStore.getState().addLayer(layerData as any);
+
+    // Move the image to just before the template block (index 1),
+    // so it's behind the template and shows through the transparent hole
+    const allLayers = useCardStore.getState().layers;
+    const newLayerIndex = allLayers.length - 1;
+    if (newLayerIndex > 1) {
+      useCardStore.getState().moveLayer(newLayerIndex, 1);
+    }
+
     onClose();
   };
 
@@ -135,7 +141,7 @@ export function ImageSelector({ x, y, imageArea, onSelect, onClose }: ImageSelec
               className="image-upload-btn"
               onClick={() => fileInputRef.current?.click()}
             >
-              📁 Choose File from Device
+              Choose File from Device
             </button>
             <p className="image-upload-hint">PNG, JPG, or WebP recommended</p>
           </div>

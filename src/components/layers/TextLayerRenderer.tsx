@@ -16,6 +16,7 @@ export function TextLayerRenderer({
   layer,
   isSelected,
   scaleFactor,
+  opacity,
   onSelect,
   onDragEnd,
   onTransformEnd,
@@ -167,6 +168,7 @@ export function TextLayerRenderer({
         fill={textLayer.color}
         align={textLayer.justify}
         lineHeight={1 + textLayer.lineSpace / textLayer.height}
+        opacity={opacity}
         draggable
         onClick={onSelect}
         onTap={onSelect}

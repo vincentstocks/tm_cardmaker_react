@@ -39,9 +39,10 @@ export function CardCanvas({ showOverlays = true }: CardCanvasProps) {
       const node = e.target;
       const layer = layers.find(l => l.id === layerId);
       let newX = Math.round(node.x() / SCALE_FACTOR);
-      const newY = Math.round(node.y() / SCALE_FACTOR);
+      let newY = Math.round(node.y() / SCALE_FACTOR);
 
       // Text layers store x as the anchor point (center/left/right), not the box left edge
+      // and y as the baseline, not the top of the rendered box
       if (layer && layer.type === 'text') {
         const textLayer = layer as any;
         if (textLayer.justify === 'center') {
@@ -49,6 +50,8 @@ export function CardCanvas({ showOverlays = true }: CardCanvasProps) {
         } else if (textLayer.justify === 'right') {
           newX = newX + textLayer.width;
         }
+        // Add back the y baseline offset (text renders at y - height*0.9)
+        newY = newY + Math.round(textLayer.height * 0.9);
       }
 
       updateLayer(layerId, {
@@ -89,56 +92,65 @@ export function CardCanvas({ showOverlays = true }: CardCanvasProps) {
   const exportAsPng = useCallback(() => {
     if (!stageRef.current || !baseLayer) return;
 
-    // Standard poker card: 63.5 × 88 mm at 300 DPI = 750 × 1039 pixels
-    const PRINT_DPI = 300;
-    const CARD_WIDTH_MM = 63.5;
-    const CARD_HEIGHT_MM = 88;
-    const baseWidth = (baseLayer as any).width;
-    const baseHeight = (baseLayer as any).height;
+    // Deselect everything before export
+    selectLayer(null);
 
-    // Determine if portrait or landscape based on base layer
-    const isLandscape = baseWidth > baseHeight;
-    const exportWidth = isLandscape
-      ? Math.round(CARD_HEIGHT_MM / 25.4 * PRINT_DPI)   // 1039px
-      : Math.round(CARD_WIDTH_MM / 25.4 * PRINT_DPI);   // 750px
-    const exportHeight = isLandscape
-      ? Math.round(CARD_WIDTH_MM / 25.4 * PRINT_DPI)    // 750px
-      : Math.round(CARD_HEIGHT_MM / 25.4 * PRINT_DPI);  // 1039px
+    // Use setTimeout to allow React to re-render with deselected state
+    setTimeout(() => {
+      const currentStage = stageRef.current;
+      if (!currentStage) return;
 
-    // Create a temporary stage at export resolution
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    document.body.appendChild(container);
+      // Hide transformers
+      currentStage.find('Transformer').forEach((t: any) => t.hide());
+      currentStage.draw();
 
-    const exportStage = new Konva.Stage({
-      container,
-      width: exportWidth,
-      height: exportHeight,
-    });
+      // Standard poker card: 63.5 × 88 mm at 300 DPI
+      const baseWidth = (baseLayer as any).width;
+      const baseHeight = (baseLayer as any).height;
+      const isLandscape = baseWidth > baseHeight;
+      const exportWidth = isLandscape ? CARD_HEIGHT_PX : CARD_WIDTH_PX;   // 1039 or 750
+      const exportHeight = isLandscape ? CARD_WIDTH_PX : CARD_HEIGHT_PX;  // 750 or 1039
 
-    // Clone current layers and scale from display size to export size
-    const currentStage = stageRef.current;
-    const konvaLayer = currentStage.getLayers()[0];
-    const clonedLayer = konvaLayer.clone();
+      // Export at the ratio needed to go from display size to print size
+      const pixelRatio = exportWidth / (baseWidth * SCALE_FACTOR);
 
-    // Scale from display pixels to export pixels
-    const scaleToExport = exportWidth / stageWidth;
-    clonedLayer.scale({ x: scaleToExport, y: scaleToExport });
-    exportStage.add(clonedLayer);
+      const dataUrl = currentStage.toDataURL({
+        mimeType: 'image/png',
+        pixelRatio,
+        width: baseWidth * SCALE_FACTOR,
+        height: baseHeight * SCALE_FACTOR,
+      });
 
-    const dataUrl = exportStage.toDataURL({ pixelRatio: 1 });
+      // Show transformers again
+      currentStage.find('Transformer').forEach((t: any) => t.show());
+      currentStage.draw();
 
-    // Download
-    const link = document.createElement('a');
-    link.download = 'tm-card.png';
-    link.href = dataUrl;
-    link.click();
+      if (!dataUrl || !dataUrl.includes(',')) {
+        console.error('Export failed: canvas may be tainted by cross-origin images');
+        alert('Export failed. If you uploaded an image from a URL, try uploading it from your device instead.');
+        return;
+      }
 
-    // Cleanup
-    exportStage.destroy();
-    document.body.removeChild(container);
-  }, [baseLayer, stageWidth]);
+      // Download via blob for better compatibility
+      const byteString = atob(dataUrl.split(',')[1]);
+      const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.download = 'tm-card.png';
+      link.href = url;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }, [baseLayer, selectLayer]);
 
   // Expose export function globally for the toolbar
   (window as any).__exportCardAsPng = exportAsPng;
@@ -157,10 +169,12 @@ export function CardCanvas({ showOverlays = true }: CardCanvasProps) {
           <KonvaLayer>
             {layers.map((layer) => {
               const isSelected = layer.id === selectedLayerId;
+              // Skip selected layer on first pass — render it last for top interaction
+              if (isSelected) return null;
               const commonProps = {
                 key: layer.id,
                 layer,
-                isSelected,
+                isSelected: false,
                 scaleFactor: SCALE_FACTOR,
                 onSelect: () => handleSelect(layer.id),
                 onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => handleDragEnd(layer.id, e),
@@ -182,9 +196,39 @@ export function CardCanvas({ showOverlays = true }: CardCanvasProps) {
                   return null;
               }
             })}
+            {/* Render selected layer on top so transform handles are always accessible */}
+            {selectedLayerId && (() => {
+              const layer = layers.find(l => l.id === selectedLayerId);
+              if (!layer) return null;
+              const commonProps = {
+                key: layer.id + '-selected',
+                layer,
+                isSelected: true,
+                scaleFactor: SCALE_FACTOR,
+                opacity: 0.75,
+                onSelect: () => handleSelect(layer.id),
+                onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => handleDragEnd(layer.id, e),
+                onTransformEnd: (e: Konva.KonvaEventObject<Event>) => handleTransformEnd(layer.id, e),
+              };
+
+              switch (layer.type) {
+                case 'base':
+                  return <BaseLayerRenderer {...commonProps} />;
+                case 'block':
+                  return <BlockLayerRenderer {...commonProps} />;
+                case 'text':
+                  return <TextLayerRenderer {...commonProps} />;
+                case 'production':
+                  return <ProductionLayerRenderer {...commonProps} />;
+                case 'effect':
+                  return <EffectLayerRenderer {...commonProps} />;
+                default:
+                  return null;
+              }
+            })()}
           </KonvaLayer>
         </Stage>
-        <EditorOverlay containerWidth={stageWidth} containerHeight={stageHeight} visible={showOverlays} />
+        <EditorOverlay containerWidth={stageWidth} containerHeight={stageHeight} visible={showOverlays && !selectedLayerId} />
       </div>
     </div>
   );

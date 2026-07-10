@@ -5,6 +5,7 @@ export interface LayerRendererProps {
   layer: Layer;
   isSelected: boolean;
   scaleFactor: number;
+  opacity?: number;
   onSelect: () => void;
   onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void;
   onTransformEnd: (e: Konva.KonvaEventObject<Event>) => void;

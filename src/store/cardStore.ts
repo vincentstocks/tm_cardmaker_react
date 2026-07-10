@@ -1,12 +1,66 @@
 import { create } from 'zustand';
 import { Layer, BlockLayer, TextLayer, ProductionLayer, EffectLayer, LineLayer, TemplateLayerDef } from '../types';
 import { cardTemplates } from '../data/templates';
-import { blockAssets } from '../data/assets';
+import { blockAssets, presets } from '../data/assets';
 import { CARD_WIDTH_PX, CARD_HEIGHT_PX } from '../utils/cardDimensions';
 
 let nextId = 1;
 function generateId(): string {
   return `layer-${nextId++}`;
+}
+
+// Map asset IDs to their default preset
+function getDefaultPreset(asset: { id: string; category: string; label: string }): { x?: number; y?: number; width?: number; height?: number } | undefined {
+  const category = asset.category;
+  const categoryPresets = presets[category];
+  if (!categoryPresets || categoryPresets.length === 0) return undefined;
+
+  switch (category) {
+    case 'resources': {
+      if (asset.id === 'res-card') return categoryPresets.find(p => p.label === 'Card');
+      if (asset.id === 'res-TR') return categoryPresets.find(p => p.label === 'TR');
+      return categoryPresets.find(p => p.label === 'Standard') || categoryPresets[0];
+    }
+    case 'globalparameters': {
+      if (asset.id === 'gp-oxygen') return categoryPresets.find(p => p.label === 'Oxygen');
+      if (asset.id === 'gp-temperature') return categoryPresets.find(p => p.label === 'Temp');
+      if (asset.id === 'gp-venus') return categoryPresets.find(p => p.label === 'Venus');
+      return categoryPresets[0];
+    }
+    case 'VPs': {
+      if (asset.id === 'vp-negative') return categoryPresets.find(p => p.label === 'Negative');
+      return categoryPresets.find(p => p.label === 'Standard') || categoryPresets[0];
+    }
+    case 'tiles':
+      return categoryPresets[0];
+    case 'misc': {
+      // Match misc items by label
+      if (asset.id === 'misc-megacredit') return categoryPresets.find(p => p.label === 'MC');
+      if (asset.id === 'misc-arrow') return categoryPresets.find(p => p.label === 'Arrow');
+      if (asset.id === 'misc-asterisk') return categoryPresets.find(p => p.label === 'Asterisk');
+      if (asset.id === 'misc-slash') return categoryPresets.find(p => p.label === 'Slash');
+      if (asset.id === 'misc-colon') return categoryPresets.find(p => p.label === 'Colon');
+      if (asset.id === 'misc-delegate') return categoryPresets.find(p => p.label === 'Delegate');
+      if (asset.id === 'misc-effect') return categoryPresets.find(p => p.label === 'Effect (bg)');
+      if (asset.id === 'misc-influence') return categoryPresets.find(p => p.label === 'Influence');
+      if (asset.id === 'misc-corp-tag-holder') return categoryPresets.find(p => p.label === 'Tag Holder 0');
+      return categoryPresets[0];
+    }
+    case 'parties':
+      return categoryPresets[0];
+    case 'requisites': {
+      if (asset.id === 'req-max-big') return categoryPresets.find(p => p.label === 'Max');
+      if (asset.id === 'req-min-big') return categoryPresets.find(p => p.label === 'Min Large');
+      if (asset.id === 'req-min-medium') return categoryPresets.find(p => p.label === 'Min Medium');
+      if (asset.id === 'req-min-small') return categoryPresets.find(p => p.label === 'Min Small');
+      if (asset.id === 'req-normal') return categoryPresets.find(p => p.label === 'No Req');
+      return categoryPresets[0];
+    }
+    case 'tags':
+      return categoryPresets[0]; // First Tag slot
+    default:
+      return undefined;
+  }
 }
 
 interface CardState {
@@ -163,18 +217,17 @@ export const useCardStore = create<CardState>((set, get) => ({
     const asset = blockAssets.find((a) => a.id === blockId);
     if (!asset) return;
 
-    const baseLayer = get().layers.find(l => l.type === 'base');
-    const centerX = baseLayer ? Math.round((baseLayer as any).width / 2) : 413;
-    const centerY = baseLayer ? Math.round((baseLayer as any).height / 2) : 563;
+    // Determine the default preset for this asset
+    const preset = getDefaultPreset(asset);
 
     const layer: Omit<BlockLayer, 'id'> = {
       type: 'block',
       name: asset.label,
       blockId: asset.id,
-      x: centerX - 50,
-      y: centerY - 50,
-      width: 100,
-      height: 100,
+      x: preset?.x ?? Math.round(CARD_WIDTH_PX / 2) - 50,
+      y: preset?.y ?? Math.round(CARD_HEIGHT_PX / 2) - 50,
+      width: preset?.width ?? 100,
+      height: preset?.height ?? 100,
       showOtherBg: false,
     };
 

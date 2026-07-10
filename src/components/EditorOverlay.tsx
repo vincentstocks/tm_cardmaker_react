@@ -3,22 +3,44 @@ import { useCardStore } from '../store/cardStore';
 import { TagSelector } from './TagSelector';
 import { RequirementSelector } from './RequirementSelector';
 import { ImageSelector } from './ImageSelector';
-import { CARD_WIDTH_PX, CARD_HEIGHT_PX } from '../utils/cardDimensions';
+import { CARD_WIDTH_PX, CARD_HEIGHT_PX, CARD_LANDSCAPE_WIDTH_PX, CARD_LANDSCAPE_HEIGHT_PX } from '../utils/cardDimensions';
 import { TextLayer } from '../types';
 
 const SCALE = 0.65;
 
-// Tag slot positions (in print pixels, from presets)
-const TAG_SLOTS = [
+// Portrait tag slot positions (in print pixels, from presets - original 826×1126)
+const PORTRAIT_TAG_SLOTS = [
   { x: Math.round(639 * CARD_WIDTH_PX / 826), y: Math.round(67 * CARD_HEIGHT_PX / 1126) },
   { x: Math.round(524 * CARD_WIDTH_PX / 826), y: Math.round(67 * CARD_HEIGHT_PX / 1126) },
   { x: Math.round(410 * CARD_WIDTH_PX / 826), y: Math.round(67 * CARD_HEIGHT_PX / 1126) },
 ];
-const TAG_SIZE = Math.round(110 * CARD_WIDTH_PX / 826); // ~100px in print
+const PORTRAIT_TAG_SIZE = Math.round(110 * CARD_WIDTH_PX / 826);
+
+// Landscape tag slot positions — original app uses sx/sy (portrait scaling) for ALL tags
+const LW = CARD_LANDSCAPE_WIDTH_PX;  // 1039
+const LH = CARD_LANDSCAPE_HEIGHT_PX; // 750
+
+// Prelude tags: uses portrait scaling (sx/sy from 826/1126 → 750/1039)
+const PRELUDE_TAG_SLOTS = [
+  { x: Math.round(937 * CARD_WIDTH_PX / 826), y: Math.round(67 * CARD_HEIGHT_PX / 1126) },
+  { x: Math.round(822 * CARD_WIDTH_PX / 826), y: Math.round(67 * CARD_HEIGHT_PX / 1126) },
+  { x: Math.round(708 * CARD_WIDTH_PX / 826), y: Math.round(67 * CARD_HEIGHT_PX / 1126) },
+];
+
+// Corporation tags: in original 1126×826 landscape coords
+const CORP_TAG_SLOTS = [
+  { x: Math.round(940 * CARD_WIDTH_PX / 826), y: Math.round(88 * CARD_HEIGHT_PX / 1126) },
+  { x: Math.round(828 * CARD_WIDTH_PX / 826), y: Math.round(88 * CARD_HEIGHT_PX / 1126) },
+];
+
+// Tag size uses portrait scaling too
+const LANDSCAPE_TAG_SIZE = Math.round(110 * CARD_WIDTH_PX / 826);
 
 // Margins for the image area
 const IMAGE_MARGIN_X = Math.round(63 * CARD_WIDTH_PX / 826);
 const IMAGE_WIDTH = CARD_WIDTH_PX - 2 * IMAGE_MARGIN_X;
+const LANDSCAPE_IMAGE_MARGIN_X = Math.round(63 * LW / 1126);
+const LANDSCAPE_IMAGE_WIDTH = LW - 2 * LANDSCAPE_IMAGE_MARGIN_X;
 
 interface EditorOverlayProps {
   containerWidth: number;
@@ -27,7 +49,7 @@ interface EditorOverlayProps {
 }
 
 export function EditorOverlay({ containerWidth, containerHeight, visible = true }: EditorOverlayProps) {
-  const { layers, addBlock, updateLayer, selectLayer } = useCardStore();
+  const { layers, addBlock, updateLayer, selectLayer, deleteLayer } = useCardStore();
   const [tagSelectorOpen, setTagSelectorOpen] = useState<{ slotIndex: number; x: number; y: number } | null>(null);
   const [reqSelectorOpen, setReqSelectorOpen] = useState<{ x: number; y: number } | null>(null);
   const [imageSelectorOpen, setImageSelectorOpen] = useState<{ x: number; y: number } | null>(null);
@@ -35,7 +57,7 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
   const baseLayer = layers.find(l => l.type === 'base');
   const isLandscape = baseLayer && (baseLayer as any).width > (baseLayer as any).height;
 
-  if (!visible || isLandscape) return null;
+  if (!visible) return null;
 
   // Get actual positions from the store layers
   const costLayer = layers.find(l => l.name === 'Cost') as TextLayer | undefined;
@@ -46,14 +68,53 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
   const fanMadeLayer = layers.find(l => l.name === 'FAN MADE') as TextLayer | undefined;
 
   // Dynamic image area: between Card Name bottom and FAN MADE top
+  // Detect if this is a blue card
+  const templateBlock = layers.find(l => l.type === 'block' && (l as any).blockId?.startsWith('tpl-'));
+  const isBlueCard = templateBlock && (templateBlock as any).blockId?.includes('blue');
+
+  // Select tag slots and size based on orientation and template type
+  const isCorporation = templateBlock && (templateBlock as any).blockId?.includes('corporation');
+  const tagSlots = isLandscape
+    ? (isCorporation ? CORP_TAG_SLOTS : PRELUDE_TAG_SLOTS)
+    : PORTRAIT_TAG_SLOTS;
+  const tagSize = isLandscape ? LANDSCAPE_TAG_SIZE : PORTRAIT_TAG_SIZE;
+  const imgMarginX = isLandscape ? LANDSCAPE_IMAGE_MARGIN_X : IMAGE_MARGIN_X;
+  const imgWidth = isLandscape ? LANDSCAPE_IMAGE_WIDTH : IMAGE_WIDTH;
+
   const imageArea = (() => {
     if (!cardNameLayer || !fanMadeLayer) return null;
-    const topY = cardNameLayer.y + cardNameLayer.height * 0.5; // below the card name
-    const bottomY = fanMadeLayer.y - fanMadeLayer.height * 1.5; // above FAN MADE
+
+    if (isLandscape) {
+      // Landscape cards: image area between Card Name and FAN MADE
+      const topY = cardNameLayer.y + cardNameLayer.height * 0.5;
+      const bottomY = fanMadeLayer.y - fanMadeLayer.height * 1.5;
+      return { x: imgMarginX, y: Math.round(topY), w: imgWidth, h: Math.round(bottomY - topY) };
+    }
+
+    if (isBlueCard) {
+      const cardH = baseLayer ? (baseLayer as any).height : CARD_HEIGHT_PX;
+      const blockId = (templateBlock as any).blockId as string;
+
+      if (blockId.includes('blue-big-top')) {
+        // Blue Big Top: 1/4 height, top edge at card center
+        const h = Math.round(cardH / 4);
+        const y = Math.round(cardH / 2);
+        return { x: imgMarginX, y, w: imgWidth, h };
+      }
+
+      // Other blue cards: centered around middle, 1/3 of card height
+      const h = Math.round(cardH / 3);
+      const y = Math.round((cardH - h) / 2);
+      return { x: imgMarginX, y, w: imgWidth, h };
+    }
+
+    // Green/Red cards: between Card Name and FAN MADE
+    const topY = cardNameLayer.y + cardNameLayer.height * 0.5;
+    const bottomY = fanMadeLayer.y - fanMadeLayer.height * 1.5;
     return {
-      x: IMAGE_MARGIN_X,
+      x: imgMarginX,
       y: Math.round(topY),
-      w: IMAGE_WIDTH,
+      w: imgWidth,
       h: Math.round(bottomY - topY),
     };
   })();
@@ -83,11 +144,12 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
   };
 
   // Cost zone: use a tighter width centered on the cost x position
+  // Cost zone indicator (visual only — doesn't affect text placement)
   const costZone = costLayer ? (() => {
     const displaySize = costLayer.height * SCALE * 1.3;
     return {
-      left: costLayer.x * SCALE - displaySize / 2,
-      top: (costLayer.y - costLayer.height * 0.9) * SCALE,
+      left: costLayer.x * SCALE - displaySize / 2 + 3,
+      top: (costLayer.y - costLayer.height * 0.9) * SCALE - 6,
       width: displaySize,
       height: displaySize,
     };
@@ -134,55 +196,80 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
     if (!tagSelectorOpen) return;
 
     const { slotIndex } = tagSelectorOpen;
-    const pos = TAG_SLOTS[slotIndex];
+    const pos = tagSlots[slotIndex];
     if (!pos) return;
 
-    const existingTag = layers.find(l =>
+    // Find existing tag in this slot (by position proximity OR by matching a tag blockId near this slot)
+    const currentLayers = useCardStore.getState().layers;
+    const existingTag = currentLayers.find(l =>
       l.type === 'block' &&
-      Math.abs((l as any).x - pos.x) < 15 &&
-      Math.abs((l as any).y - pos.y) < 15
+      (l as any).blockId?.startsWith('tag-') &&
+      Math.abs((l as any).x - pos.x) < 30 &&
+      Math.abs((l as any).y - pos.y) < 30
     );
 
     if (existingTag) {
-      updateLayer(existingTag.id, { blockId: tagBlockId } as any);
-    } else {
-      addBlock(tagBlockId);
-      const allLayers = useCardStore.getState().layers;
-      const newLayer = allLayers[allLayers.length - 1];
-      if (newLayer) {
-        updateLayer(newLayer.id, {
-          x: pos.x,
-          y: pos.y,
-          width: TAG_SIZE,
-          height: TAG_SIZE,
-        } as any);
-      }
+      // Remove old tag and add the new one
+      deleteLayer(existingTag.id);
+    }
+
+    // Add new tag at the slot position
+    addBlock(tagBlockId);
+    const allLayers = useCardStore.getState().layers;
+    const newLayer = allLayers[allLayers.length - 1];
+    if (newLayer) {
+      updateLayer(newLayer.id, {
+        x: pos.x,
+        y: pos.y,
+        width: tagSize,
+        height: tagSize,
+      } as any);
     }
 
     setTagSelectorOpen(null);
+
+    // Update tag holder position for corporation cards
+    if (isCorporation) {
+      const currentLayers = useCardStore.getState().layers;
+      const tagHolderLayer = currentLayers.find(l => l.name === 'Tag Holder');
+      if (tagHolderLayer) {
+        // Count how many tags are placed in corp tag slots
+        const tagCount = CORP_TAG_SLOTS.filter(slot =>
+          currentLayers.some(l =>
+            l.type === 'block' &&
+            l.name !== 'Tag Holder' &&
+            Math.abs((l as any).x - slot.x) < 15 &&
+            Math.abs((l as any).y - slot.y) < 15
+          )
+        ).length;
+
+        // Tag holder presets from original: x shifts left as tags are added
+        // Original 1126×826 coords: 0 tags=969, 1 tag=898, 2 tags=794
+        const holderXPresets = [969, 898, 794];
+        const holderX = holderXPresets[Math.min(tagCount, 2)];
+        updateLayer(tagHolderLayer.id, {
+          x: Math.round(holderX * LW / 1126),
+        } as any);
+      }
+    }
   };
 
   const handleReqSelected = (reqBlockId: string) => {
     if (!reqSelectorOpen) return;
 
-    // Use preset positions from the original app
-    const reqPos = {
-      x: Math.round(180 * CARD_WIDTH_PX / 826),
-      y: Math.round(92 * CARD_HEIGHT_PX / 1126),
-      width: Math.round(147 * CARD_WIDTH_PX / 826),
-      height: Math.round(60 * CARD_HEIGHT_PX / 1126),
-    };
+    // Find any existing requirement block (by blockId prefix)
+    const currentLayers = useCardStore.getState().layers;
+    const existingReq = currentLayers.find(l =>
+      l.type === 'block' &&
+      (l as any).blockId?.startsWith('req-')
+    );
 
-    if (reqLayer) {
-      updateLayer(reqLayer.id, { blockId: reqBlockId, width: reqPos.width } as any);
-    } else {
-      addBlock(reqBlockId);
-      const allLayers = useCardStore.getState().layers;
-      const newLayer = allLayers[allLayers.length - 1];
-      if (newLayer) {
-        updateLayer(newLayer.id, reqPos as any);
-      }
+    if (existingReq) {
+      deleteLayer(existingReq.id);
     }
+
+    // Add new requirement — addBlock applies the correct preset automatically
+    addBlock(reqBlockId);
 
     setReqSelectorOpen(null);
   };
@@ -227,15 +314,15 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
     <>
       <div className="editor-overlay" style={{ width: containerWidth, height: containerHeight }}>
         {/* Tag slots — circular, positioned exactly where tags render */}
-        {TAG_SLOTS.map((pos, i) => (
+        {tagSlots.map((pos, i) => (
           <button
             key={`tag-${i}`}
             className="editor-zone editor-zone-circle"
             style={{
               left: pos.x * SCALE,
               top: pos.y * SCALE,
-              width: TAG_SIZE * SCALE,
-              height: TAG_SIZE * SCALE,
+              width: tagSize * SCALE,
+              height: tagSize * SCALE,
             }}
             onClick={(e) => handleTagClick(i, e)}
             title={`Tag ${i + 1}`}
@@ -291,7 +378,7 @@ export function EditorOverlay({ containerWidth, containerHeight, visible = true 
             onClick={handleImageClick}
             title="Set Card Image"
           >
-            <span className="editor-zone-label">🖼 Image</span>
+            <span className="editor-zone-label">Image</span>
           </button>
         )}
 

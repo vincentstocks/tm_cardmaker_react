@@ -1,4 +1,5 @@
 import { useCardStore } from '../store/cardStore';
+import { Palette, Image, Type, Box, Sparkles, Minus, Upload, Globe, HelpCircle } from 'lucide-react';
 
 export function LayerPanel() {
   const { layers, selectedLayerId, selectLayer, deleteLayer, moveLayer } = useCardStore();
@@ -23,7 +24,9 @@ export function LayerPanel() {
     <div className="layer-panel">
       <h3 className="panel-title">Layers</h3>
       <div className="layer-list">
-        {layers.map((layer, index) => (
+        {[...layers].reverse().map((layer, revIndex) => {
+          const index = layers.length - 1 - revIndex;
+          return (
           <div
             key={layer.id}
             className={`layer-item ${layer.id === selectedLayerId ? 'layer-item--selected' : ''} ${layer.type === 'base' ? 'layer-item--base' : ''}`}
@@ -48,22 +51,23 @@ export function LayerPanel() {
               </button>
             )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function getLayerTypeIcon(type: string): string {
+function getLayerTypeIcon(type: string): React.ReactNode {
   switch (type) {
-    case 'base': return '🎨';
-    case 'block': return '🖼️';
-    case 'text': return '📝';
-    case 'production': return '📦';
-    case 'effect': return '✨';
-    case 'line': return '➖';
-    case 'userImage': return '📷';
-    case 'webImage': return '🌐';
-    default: return '❓';
+    case 'base': return <Palette size={14} />;
+    case 'block': return <Image size={14} />;
+    case 'text': return <Type size={14} />;
+    case 'production': return <Box size={14} />;
+    case 'effect': return <Sparkles size={14} />;
+    case 'line': return <Minus size={14} />;
+    case 'userImage': return <Upload size={14} />;
+    case 'webImage': return <Globe size={14} />;
+    default: return <HelpCircle size={14} />;
   }
 }

@@ -198,7 +198,7 @@ export const presets: Record<string, BlockPreset[]> = {
     { label: 'Negative', x: sx(652), y: sy(836), width: sx(223), height: sy(223) },
   ],
   tiles: [
-    { label: 'Standard tile', height: sy(142) },
+    { label: 'Standard tile', x: sx(413), y: sy(643), width: sx(142), height: sy(142) },
   ],
   requisites: [
     { label: 'Max', x: sx(180), y: sy(92), width: sx(200), height: sy(60) },

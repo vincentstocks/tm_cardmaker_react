@@ -36,6 +36,8 @@ export function ProductionLayerRenderer({
         ref={nodeRef}
         x={x}
         y={y}
+        width={w}
+        height={h}
         draggable
         onClick={onSelect}
         onTap={onSelect}

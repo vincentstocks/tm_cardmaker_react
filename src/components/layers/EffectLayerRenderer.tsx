@@ -36,6 +36,8 @@ export function EffectLayerRenderer({
         ref={nodeRef}
         x={x}
         y={y}
+        width={w}
+        height={h}
         draggable
         onClick={onSelect}
         onTap={onSelect}

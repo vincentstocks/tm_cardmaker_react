@@ -1,11 +1,12 @@
 import { createContext, useContext, useRef, MutableRefObject } from 'react';
 import Konva from 'konva';
 
-interface PrintCard {
+export interface PrintCard {
   name: string;
   dataUrl: string;
   widthMm: number;
   heightMm: number;
+  cardType: 'standard' | 'prelude' | 'corporation';
 }
 
 export interface CardCanvasContextValue {

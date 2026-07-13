@@ -13,6 +13,9 @@ const templatePreviews: Record<string, { path: string; orientation: 'portrait' |
   'red-small-bottom': { path: '/assets/templates/red_small_bottom.png', orientation: 'portrait' },
   'prelude': { path: '/assets/templates/prelude.png', orientation: 'landscape' },
   'corporation': { path: '/assets/templates/corporation.png', orientation: 'landscape' },
+  'card-back': { path: '/assets/templates/tm-card-back-v2.png', orientation: 'portrait' },
+  'prelude-back': { path: '/assets/templates/tm-prel-back.png', orientation: 'landscape' },
+  'corporation-back': { path: '/assets/templates/tm-corp-back.png', orientation: 'landscape' },
 };
 
 export function TemplateSelector() {
@@ -51,7 +54,7 @@ export function TemplateSelector() {
         </div>
 
         <p className="template-selector-credits">
-          Inspired by the original website <a href="https://github.com/SliceOfBread/tm_cardmaker" target="_blank" rel="noopener noreferrer">TM Card Maker</a> by SliceOfBread, rebuilt with a focus on usability.<br/>
+          Inspired by the original website <a href="https://github.com/SliceOfBread/tm_cardmaker" target="_blank" rel="noopener noreferrer">TM Card Maker</a> by <a href="https://github.com/SliceOfBread" target="_blank" rel="noopener noreferrer">SliceOfBread</a>, rebuilt with a focus on usability.<br/>
           This website is not affiliated with Terraforming Mars or Fryxgames in any way.<br/>
           <a href="https://github.com/vincentstocks/tm_cardmaker_react" target="_blank" rel="noopener noreferrer">Source code</a> (GPL-3.0)
         </p>

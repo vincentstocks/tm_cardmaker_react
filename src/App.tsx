@@ -6,17 +6,33 @@ import { AssetPicker } from './components/AssetPicker';
 import { PropertyEditor } from './components/PropertyEditor';
 import { TemplateSelector } from './components/TemplateSelector';
 import { PrintDialog } from './components/PrintDialog';
-import { CardCanvasProvider, useCardCanvas } from './context/CardCanvasContext';
+import { CardCanvasProvider, useCardCanvas, PrintCard } from './context/CardCanvasContext';
 import { useCardStore } from './store/cardStore';
 import { Grid3x3, Magnet } from 'lucide-react';
 import './App.css';
 
 function AppContent() {
-  const { undo, redo, isProjectStarted, selectLayer, deleteLayer, selectedLayerId } = useCardStore();
+  const { undo, redo, isProjectStarted, selectLayer, deleteLayer, selectedLayerId, layers } = useCardStore();
   const canvasCtx = useCardCanvas();
   const [showOverlays, setShowOverlays] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
-  const [printDialogCards, setPrintDialogCards] = useState<{name: string; dataUrl: string; widthMm: number; heightMm: number}[] | null>(null);
+  const [printDialogCards, setPrintDialogCards] = useState<PrintCard[] | null>(null);
+
+  // Disable overlays and snap for back templates (they're just for export)
+  useEffect(() => {
+    if (!isProjectStarted) return;
+    const hasBackTemplate = layers.some(
+      (l: any) => l.type === 'block' && l.blockId && (
+        l.blockId === 'tpl-card-back' ||
+        l.blockId === 'tpl-prelude-back' ||
+        l.blockId === 'tpl-corporation-back'
+      )
+    );
+    if (hasBackTemplate) {
+      setShowOverlays(false);
+      setSnapEnabled(false);
+    }
+  }, [isProjectStarted]);
 
   // Register the print dialog opener on context so CardCanvas can call it
   useEffect(() => {
@@ -102,7 +118,7 @@ function AppContent() {
         </aside>
       </div>
       <footer className="app-footer">
-        Inspired by the original website <a href="https://github.com/SliceOfBread/tm_cardmaker" target="_blank" rel="noopener noreferrer">TM Card Maker</a> by SliceOfBread, rebuilt with a focus on usability. This website is not affiliated with Terraforming Mars or Fryxgames in any way. | <a href="https://github.com/vincentstocks/tm_cardmaker_react" target="_blank" rel="noopener noreferrer">Source code</a> (GPL-3.0)
+        Inspired by the original website <a href="https://github.com/SliceOfBread/tm_cardmaker" target="_blank" rel="noopener noreferrer">TM Card Maker</a> by <a href="https://github.com/SliceOfBread" target="_blank" rel="noopener noreferrer">SliceOfBread</a>, rebuilt with a focus on usability. This website is not affiliated with Terraforming Mars or Fryxgames in any way. | <a href="https://github.com/vincentstocks/tm_cardmaker_react" target="_blank" rel="noopener noreferrer">Source code</a> (GPL-3.0)
       </footer>
       {printDialogCards && (
         <PrintDialog

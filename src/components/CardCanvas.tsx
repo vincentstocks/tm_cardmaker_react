@@ -427,8 +427,15 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
       const cardWidthMm = isLandscape ? 95.3 : 69.9;
       const cardHeightMm = isLandscape ? 69.9 : 95.3;
 
+      // Detect card type from template block
+      const templateBlock = layers.find((l: any) => l.type === 'block' && l.blockId?.startsWith('tpl-'));
+      const blockId = (templateBlock as any)?.blockId || '';
+      let cardType: 'standard' | 'prelude' | 'corporation' = 'standard';
+      if (blockId.includes('prelude')) cardType = 'prelude';
+      else if (blockId.includes('corporation')) cardType = 'corporation';
+
       // Open print dialog
-      canvasCtx.openPrintDialog.current?.([{ name: cardName.trim() || 'Current card', dataUrl, widthMm: cardWidthMm, heightMm: cardHeightMm }]);
+      canvasCtx.openPrintDialog.current?.([{ name: cardName.trim() || 'Current card', dataUrl, widthMm: cardWidthMm, heightMm: cardHeightMm, cardType }]);
     }, 100);
   }, [baseLayer, selectLayer, cardName]);
 

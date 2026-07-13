@@ -19,6 +19,9 @@ export const blockAssets: BlockAsset[] = [
   { id: 'tpl-red-small-bottom', category: 'templates', label: 'Red Small Bottom', src: 'red_small_bottom', path: '/assets/templates/red_small_bottom.png' },
   { id: 'tpl-prelude', category: 'templates', label: 'Prelude', src: 'prelude', path: '/assets/templates/prelude.png' },
   { id: 'tpl-corporation', category: 'templates', label: 'Corporation', src: 'corporation', path: '/assets/templates/corporation.png' },
+  { id: 'tpl-card-back', category: 'templates', label: 'Card Back', src: 'tm-card-back-v2', path: '/assets/templates/tm-card-back-v2.png' },
+  { id: 'tpl-prelude-back', category: 'templates', label: 'Prelude Back', src: 'tm-prel-back', path: '/assets/templates/tm-prel-back.png' },
+  { id: 'tpl-corporation-back', category: 'templates', label: 'Corporation Back', src: 'tm-corp-back', path: '/assets/templates/tm-corp-back.png' },
 
   // Global Parameters
   { id: 'gp-oxygen', category: 'globalparameters', label: 'Oxygen', src: 'oxygen', path: '/assets/globalparameters/oxygen.png' },

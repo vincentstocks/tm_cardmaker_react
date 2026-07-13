@@ -1231,6 +1231,29 @@ body {
   line-height: 1.4;
 }
 
+.print-backs-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.print-backs-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.print-backs-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  padding-left: 24px;
+}
+
 .print-dialog-footer {
   display: flex;
   align-items: center;

@@ -175,4 +175,28 @@ export const cardTemplates: CardTemplate[] = [
       { type: 'text', name: 'Flavor Text', data: 'Flavor text!', ...l(285, 723), width: lw(470), height: lh(24), color: '#000000', font: 'Pagella', style: 'italic', weight: 'bold', lineSpace: 4, justify: 'center' },
     ],
   },
+  {
+    id: 'card-back',
+    label: 'Card Back',
+    layers: [
+      { type: 'base', name: 'Base', color: '#000000', width: W, height: H },
+      { type: 'block', name: 'Card Back', blockId: 'tpl-card-back', x: 0, y: 0, width: W, height: H, showOtherBg: false },
+    ],
+  },
+  {
+    id: 'prelude-back',
+    label: 'Prelude Back',
+    layers: [
+      { type: 'base', name: 'Base', color: '#000000', width: LW, height: LH },
+      { type: 'block', name: 'Prelude Back', blockId: 'tpl-prelude-back', x: 0, y: 0, width: LW, height: LH, showOtherBg: false },
+    ],
+  },
+  {
+    id: 'corporation-back',
+    label: 'Corporation Back',
+    layers: [
+      { type: 'base', name: 'Base', color: '#000000', width: LW, height: LH },
+      { type: 'block', name: 'Corporation Back', blockId: 'tpl-corporation-back', x: 0, y: 0, width: LW, height: LH, showOtherBg: false },
+    ],
+  },
 ];

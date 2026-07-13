@@ -2,18 +2,59 @@ import { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { useCardStore } from '../store/cardStore';
 import { useCardCanvas } from '../context/CardCanvasContext';
+import { PrintCard } from '../context/CardCanvasContext';
 import { Printer, Plus, Minus, X, Download } from 'lucide-react';
 
-interface PrintCard {
-  name: string;
-  dataUrl: string;
-  widthMm: number;
-  heightMm: number;
-}
+// Card back image paths (relative to public/)
+const CARD_BACKS: Record<PrintCard['cardType'], string> = {
+  standard: '/assets/templates/tm-card-back-v2.png',
+  prelude: '/assets/templates/tm-prel-back.png',
+  corporation: '/assets/templates/tm-corp-back.png',
+};
 
 interface PrintDialogProps {
   initialCards: PrintCard[];
   onClose: () => void;
+}
+
+/** Load an image and return it as a data URL for embedding in the PDF */
+function loadImageAsDataUrl(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('No canvas context')); return; }
+      ctx.drawImage(img, 0, 0);
+      try {
+        resolve(canvas.toDataURL('image/png'));
+      } catch (e) {
+        reject(new Error(`Canvas tainted for ${src}`));
+      }
+    };
+    img.onerror = () => reject(new Error(`Failed to load ${src}`));
+    img.src = src;
+  });
+}
+
+/** Preload all back images, returns map of cardType -> dataUrl */
+async function preloadBackImages(): Promise<Record<string, string>> {
+  const backDataUrls: Record<string, string> = {};
+  for (const [type, path] of Object.entries(CARD_BACKS)) {
+    backDataUrls[type] = await loadImageAsDataUrl(path);
+  }
+  return backDataUrls;
+}
+
+/** Detect card type from project layers by checking the template block ID */
+function detectCardType(layers: any[]): PrintCard['cardType'] {
+  const templateBlock = layers.find((l: any) => l.type === 'block' && l.blockId?.startsWith('tpl-'));
+  const blockId = templateBlock?.blockId || '';
+  if (blockId.includes('prelude')) return 'prelude';
+  if (blockId.includes('corporation')) return 'corporation';
+  return 'standard';
 }
 
 export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
@@ -21,19 +62,11 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
   const canvasCtx = useCardCanvas();
   const [cards, setCards] = useState<PrintCard[]>(initialCards);
   const [renderingProject, setRenderingProject] = useState<string | null>(null);
+  const [includeBacks, setIncludeBacks] = useState(false);
   const savedProjects = getSavedProjects();
-
-  // Card size: 69.9 x 95.3mm. A4 printable area with 10mm margins = 190x277mm
-  // Portrait cards: 2 across (2*69.9=139.8), 2 down (2*95.3=190.6) — fits 2x2=4 per page easily
-  //                 or 2 across, 3 down (3*95.3=285.9 > 277) — tight, but 2x2 is safe
-  // Actually: A4 = 210x297mm, with 10mm margin = 190x277mm
-  // 190/69.9 = 2.7 → 2 columns. 277/95.3 = 2.9 → 2 rows. So 2x2 = 4 per page for portrait.
-  // For a mix, we'll just flow them in a grid.
 
   const addSavedProject = async (projectName: string) => {
     setRenderingProject(projectName);
-    // Load the project, render it, get dataUrl
-    // We'll use a temporary offscreen canvas approach
     const projects = getSavedProjects();
     const project = projects.find(p => p.name === projectName);
     if (!project) {
@@ -41,7 +74,6 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
       return;
     }
 
-    // Render the project by temporarily loading it
     // Store current state
     const currentState = useCardStore.getState();
     const currentLayers = [...currentState.layers];
@@ -51,11 +83,9 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
     // Load the project
     useCardStore.getState().loadProject(projectName);
 
-    // Wait for all images on the Konva stage to finish loading.
-    // The useImage hook sets the image attribute on Konva.Image nodes once loaded.
-    // We poll until all Image nodes have a loaded image, with a timeout fallback.
+    // Wait for all images on the Konva stage to finish loading
     await new Promise<void>(resolve => {
-      const maxWait = 10000; // 10s max
+      const maxWait = 10000;
       const pollInterval = 100;
       let elapsed = 0;
 
@@ -71,13 +101,12 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
           }
         }
         if (elapsed >= maxWait) {
-          resolve(); // Give up after timeout
+          resolve();
           return;
         }
         setTimeout(check, pollInterval);
       };
 
-      // Initial delay to let React render the new layers
       setTimeout(check, 100);
     });
 
@@ -90,7 +119,6 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
 
     // Restore state
     if (currentStarted) {
-      // Restore by directly setting state
       useCardStore.setState({
         layers: currentLayers,
         cardName: currentName,
@@ -102,11 +130,13 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
     if (dataUrl) {
       const baseLayer = project.layers.find((l: any) => l.type === 'base');
       const isLandscape = baseLayer && (baseLayer as any).width > (baseLayer as any).height;
+      const cardType = detectCardType(project.layers);
       setCards(prev => [...prev, {
         name: projectName,
         dataUrl,
         widthMm: isLandscape ? 95.3 : 69.9,
         heightMm: isLandscape ? 69.9 : 95.3,
+        cardType,
       }]);
     }
 
@@ -121,7 +151,50 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
     setCards(prev => [...prev.slice(0, index + 1), prev[index], ...prev.slice(index + 1)]);
   };
 
-  const handlePrint = () => {
+  /**
+   * Compute the grid layout of cards on pages.
+   * Returns an array of pages, each page being an array of card positions.
+   */
+  function computeLayout(cardList: PrintCard[]) {
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 10;
+    const gap = 2;
+
+    const pages: { x: number; y: number; w: number; h: number; card: PrintCard }[][] = [[]];
+    let curX = margin;
+    let curY = margin;
+    let rowHeight = 0;
+    let currentPage = 0;
+
+    for (const card of cardList) {
+      const isLandscape = card.widthMm > card.heightMm;
+      const w = isLandscape ? card.heightMm : card.widthMm;
+      const h = isLandscape ? card.widthMm : card.heightMm;
+
+      if (curX + w > pageW - margin) {
+        curX = margin;
+        curY += rowHeight + gap;
+        rowHeight = 0;
+      }
+
+      if (curY + h > pageH - margin) {
+        currentPage++;
+        pages.push([]);
+        curX = margin;
+        curY = margin;
+        rowHeight = 0;
+      }
+
+      pages[currentPage].push({ x: curX, y: curY, w, h, card });
+      curX += w + gap;
+      rowHeight = Math.max(rowHeight, h);
+    }
+
+    return pages;
+  }
+
+  const handlePrint = async () => {
     if (cards.length === 0) return;
 
     const printWindow = window.open('', '_blank');
@@ -133,118 +206,181 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
     const doc = printWindow.document;
     doc.title = 'TM Cards - Print';
 
-    // Add print styles
     const style = doc.createElement('style');
     style.textContent = `
-      @page { size: A4; margin: 10mm; }
+      @page { size: A4; margin: 0; }
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 2mm; }
+      .page { position: relative; width: 210mm; height: 297mm; page-break-after: always; overflow: hidden; }
+      .page:last-child { page-break-after: auto; }
       img { display: block; }
     `;
     doc.head.appendChild(style);
 
-    // Build card images using DOM APIs
-    for (const card of cards) {
-      const isLandscape = card.widthMm > card.heightMm;
+    const pages = computeLayout(cards);
 
-      if (isLandscape) {
-        const wrapper = doc.createElement('div');
-        wrapper.style.width = `${card.heightMm}mm`;
-        wrapper.style.height = `${card.widthMm}mm`;
-        wrapper.style.overflow = 'hidden';
+    // Render front pages
+    for (const pageCards of pages) {
+      const pageDiv = doc.createElement('div');
+      pageDiv.className = 'page';
 
-        const img = doc.createElement('img');
-        img.src = card.dataUrl;
-        img.style.width = `${card.widthMm}mm`;
-        img.style.height = `${card.heightMm}mm`;
-        img.style.transform = 'rotate(-90deg) translateX(-100%)';
-        img.style.transformOrigin = 'top left';
+      for (const pos of pageCards) {
+        const isLandscape = pos.card.widthMm > pos.card.heightMm;
 
-        wrapper.appendChild(img);
-        doc.body.appendChild(wrapper);
-      } else {
-        const img = doc.createElement('img');
-        img.src = card.dataUrl;
-        img.style.width = `${card.widthMm}mm`;
-        img.style.height = `${card.heightMm}mm`;
-        doc.body.appendChild(img);
+        if (isLandscape) {
+          const wrapper = doc.createElement('div');
+          wrapper.style.position = 'absolute';
+          wrapper.style.left = `${pos.x}mm`;
+          wrapper.style.top = `${pos.y}mm`;
+          wrapper.style.width = `${pos.w}mm`;
+          wrapper.style.height = `${pos.h}mm`;
+          wrapper.style.overflow = 'hidden';
+
+          const img = doc.createElement('img');
+          img.src = pos.card.dataUrl;
+          img.style.width = `${pos.card.widthMm}mm`;
+          img.style.height = `${pos.card.heightMm}mm`;
+          img.style.transform = 'rotate(-90deg) translateX(-100%)';
+          img.style.transformOrigin = 'top left';
+
+          wrapper.appendChild(img);
+          pageDiv.appendChild(wrapper);
+        } else {
+          const img = doc.createElement('img');
+          img.src = pos.card.dataUrl;
+          img.style.position = 'absolute';
+          img.style.left = `${pos.x}mm`;
+          img.style.top = `${pos.y}mm`;
+          img.style.width = `${pos.w}mm`;
+          img.style.height = `${pos.h}mm`;
+          pageDiv.appendChild(img);
+        }
+      }
+
+      doc.body.appendChild(pageDiv);
+    }
+
+    // Render back pages if enabled
+    if (includeBacks) {
+      const pageW = 210;
+
+      for (const pageCards of pages) {
+        const pageDiv = doc.createElement('div');
+        pageDiv.className = 'page';
+
+        for (const pos of pageCards) {
+          const isLandscape = pos.card.widthMm > pos.card.heightMm;
+          const backSrc = CARD_BACKS[pos.card.cardType];
+
+          // Mirror x position for long-edge duplex
+          const mirroredX = pageW - pos.x - pos.w;
+
+          if (isLandscape) {
+            const wrapper = doc.createElement('div');
+            wrapper.style.position = 'absolute';
+            wrapper.style.left = `${mirroredX}mm`;
+            wrapper.style.top = `${pos.y}mm`;
+            wrapper.style.width = `${pos.w}mm`;
+            wrapper.style.height = `${pos.h}mm`;
+            wrapper.style.overflow = 'hidden';
+
+            const img = doc.createElement('img');
+            img.src = backSrc;
+            img.style.width = `${pos.card.widthMm}mm`;
+            img.style.height = `${pos.card.heightMm}mm`;
+            img.style.transform = 'rotate(-90deg) translateX(-100%)';
+            img.style.transformOrigin = 'top left';
+
+            wrapper.appendChild(img);
+            pageDiv.appendChild(wrapper);
+          } else {
+            const img = doc.createElement('img');
+            img.src = backSrc;
+            img.style.position = 'absolute';
+            img.style.left = `${mirroredX}mm`;
+            img.style.top = `${pos.y}mm`;
+            img.style.width = `${pos.w}mm`;
+            img.style.height = `${pos.h}mm`;
+            pageDiv.appendChild(img);
+          }
+        }
+
+        doc.body.appendChild(pageDiv);
       }
     }
 
-    // Trigger print after images render
-    printWindow.onload = () => {
-      setTimeout(() => printWindow.print(), 300);
-    };
-    // Fallback: if onload already fired (data URLs load synchronously)
+    // Trigger print after images load
     setTimeout(() => printWindow.print(), 500);
   };
 
-  const handleSavePdf = () => {
+  const handleSavePdf = async () => {
     if (cards.length === 0) return;
 
-    // A4 dimensions in mm
     const pageW = 210;
     const pageH = 297;
     const margin = 10;
-    const gap = 2;
-    const printableW = pageW - 2 * margin;
-    const printableH = pageH - 2 * margin;
 
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pages = computeLayout(cards);
 
-    let curX = margin;
-    let curY = margin;
-    let rowHeight = 0;
+    // Draw front pages
+    for (let p = 0; p < pages.length; p++) {
+      if (p > 0) pdf.addPage();
 
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      const isLandscape = card.widthMm > card.heightMm;
-      // For landscape cards, rotate 90° so they take up portrait space
-      const w = isLandscape ? card.heightMm : card.widthMm;
-      const h = isLandscape ? card.widthMm : card.heightMm;
+      for (const pos of pages[p]) {
+        const isLandscape = pos.card.widthMm > pos.card.heightMm;
 
-      // Check if card fits in current row
-      if (curX + w > pageW - margin) {
-        // Move to next row
-        curX = margin;
-        curY += rowHeight + gap;
-        rowHeight = 0;
+        if (isLandscape) {
+          pdf.saveGraphicsState();
+          const rad = -Math.PI / 2;
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+          pdf.setCurrentTransformationMatrix(
+            pdf.Matrix(cos, sin, -sin, cos, pos.x, pos.y + pos.h)
+          );
+          pdf.addImage(pos.card.dataUrl, 'PNG', 0, 0, pos.card.widthMm, pos.card.heightMm);
+          pdf.restoreGraphicsState();
+        } else {
+          pdf.addImage(pos.card.dataUrl, 'PNG', pos.x, pos.y, pos.w, pos.h);
+        }
+      }
+    }
+
+    // Draw back pages if enabled
+    if (includeBacks) {
+      let backDataUrls: Record<string, string>;
+      try {
+        backDataUrls = await preloadBackImages();
+      } catch (err) {
+        alert('Failed to load card back images. Make sure the back image files exist in public/assets/templates/.');
+        console.error(err);
+        return;
       }
 
-      // Check if card fits on current page
-      if (curY + h > pageH - margin) {
-        // New page
+      for (const pageCards of pages) {
         pdf.addPage();
-        curX = margin;
-        curY = margin;
-        rowHeight = 0;
-      }
 
-      // Add the image (rotated for landscape cards)
-      if (isLandscape) {
-        // Use save/restore with rotation transform
-        // Rotate -90° around the top-left of the placement area
-        // After rotation: place image so it fits in the w×h box
-        pdf.saveGraphicsState();
-        // Translate to where we want the top-left of the rotated result
-        // Then rotate -90°, then draw at adjusted position
-        const rad = -Math.PI / 2;
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
-        // Transform matrix: [cos, sin, -sin, cos, tx, ty]
-        // We want the image (originally widthMm × heightMm) to appear at (curX, curY) 
-        // occupying heightMm × widthMm after rotation
-        pdf.setCurrentTransformationMatrix(
-          pdf.Matrix(cos, sin, -sin, cos, curX, curY + h)
-        );
-        pdf.addImage(card.dataUrl, 'PNG', 0, 0, card.widthMm, card.heightMm);
-        pdf.restoreGraphicsState();
-      } else {
-        pdf.addImage(card.dataUrl, 'PNG', curX, curY, w, h);
-      }
+        for (const pos of pageCards) {
+          const backDataUrl = backDataUrls[pos.card.cardType];
+          const isLandscape = pos.card.widthMm > pos.card.heightMm;
 
-      curX += w + gap;
-      rowHeight = Math.max(rowHeight, h);
+          // Mirror x for long-edge duplex printing
+          const mirroredX = pageW - pos.x - pos.w;
+
+          if (isLandscape) {
+            pdf.saveGraphicsState();
+            const rad = -Math.PI / 2;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            pdf.setCurrentTransformationMatrix(
+              pdf.Matrix(cos, sin, -sin, cos, mirroredX, pos.y + pos.h)
+            );
+            pdf.addImage(backDataUrl, 'PNG', 0, 0, pos.card.widthMm, pos.card.heightMm);
+            pdf.restoreGraphicsState();
+          } else {
+            pdf.addImage(backDataUrl, 'PNG', mirroredX, pos.y, pos.w, pos.h);
+          }
+        }
+      }
     }
 
     pdf.save('tm-cards.pdf');
@@ -301,6 +437,22 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
                 ))
               )}
             </div>
+          </div>
+
+          <div className="print-dialog-section">
+            <label className="print-backs-toggle">
+              <input
+                type="checkbox"
+                checked={includeBacks}
+                onChange={(e) => setIncludeBacks(e.target.checked)}
+              />
+              <span>Include card backs (for double-sided printing)</span>
+            </label>
+            {includeBacks && (
+              <p className="print-backs-hint">
+                Back pages are added after each front page, mirrored for long-edge duplex printing. Enable "Flip on long edge" in your printer settings.
+              </p>
+            )}
           </div>
 
           <div className="print-dialog-info">

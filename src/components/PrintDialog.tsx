@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { useCardStore } from '../store/cardStore';
+import { useCardCanvas } from '../context/CardCanvasContext';
 import { Printer, Plus, Minus, X, Download } from 'lucide-react';
 
 interface PrintCard {
@@ -17,6 +18,7 @@ interface PrintDialogProps {
 
 export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
   const { getSavedProjects } = useCardStore();
+  const canvasCtx = useCardCanvas();
   const [cards, setCards] = useState<PrintCard[]>(initialCards);
   const [renderingProject, setRenderingProject] = useState<string | null>(null);
   const savedProjects = getSavedProjects();
@@ -59,7 +61,7 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
 
       const check = () => {
         elapsed += pollInterval;
-        const stage = (window as any).__konvaStageRef?.current;
+        const stage = canvasCtx.stageRef.current;
         if (stage) {
           const imageNodes = stage.find('Image');
           const allLoaded = imageNodes.length > 0 && imageNodes.every((node: any) => node.image());
@@ -80,7 +82,7 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
     });
 
     // Capture the canvas
-    const exportFn = (window as any).__getCardDataUrl;
+    const exportFn = canvasCtx.getCardDataUrl.current;
     let dataUrl = '';
     if (exportFn) {
       dataUrl = exportFn();
@@ -128,48 +130,53 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
       return;
     }
 
-    const cardImgs = cards.map(card => {
-      const isLandscape = card.widthMm > card.heightMm;
-      if (isLandscape) {
-        // Rotate landscape cards 90° to save space
-        return `<div style="width:${card.heightMm}mm;height:${card.widthMm}mm;overflow:hidden;"><img src="${card.dataUrl}" style="width:${card.widthMm}mm;height:${card.heightMm}mm;transform:rotate(-90deg) translateX(-100%);transform-origin:top left;" /></div>`;
-      }
-      return `<img src="${card.dataUrl}" style="width:${card.widthMm}mm;height:${card.heightMm}mm;" />`;
-    }).join('\n          ');
+    const doc = printWindow.document;
+    doc.title = 'TM Cards - Print';
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>TM Cards - Print</title>
-        <style>
-          @page {
-            size: A4;
-            margin: 10mm;
-          }
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body {
-            display: flex;
-            flex-wrap: wrap;
-            align-content: flex-start;
-            gap: 2mm;
-          }
-          img {
-            display: block;
-          }
-        </style>
-      </head>
-      <body>
-          ${cardImgs}
-        <script>
-          window.onload = function() {
-            setTimeout(function() { window.print(); }, 300);
-          };
-        <\/script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+    // Add print styles
+    const style = doc.createElement('style');
+    style.textContent = `
+      @page { size: A4; margin: 10mm; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 2mm; }
+      img { display: block; }
+    `;
+    doc.head.appendChild(style);
+
+    // Build card images using DOM APIs
+    for (const card of cards) {
+      const isLandscape = card.widthMm > card.heightMm;
+
+      if (isLandscape) {
+        const wrapper = doc.createElement('div');
+        wrapper.style.width = `${card.heightMm}mm`;
+        wrapper.style.height = `${card.widthMm}mm`;
+        wrapper.style.overflow = 'hidden';
+
+        const img = doc.createElement('img');
+        img.src = card.dataUrl;
+        img.style.width = `${card.widthMm}mm`;
+        img.style.height = `${card.heightMm}mm`;
+        img.style.transform = 'rotate(-90deg) translateX(-100%)';
+        img.style.transformOrigin = 'top left';
+
+        wrapper.appendChild(img);
+        doc.body.appendChild(wrapper);
+      } else {
+        const img = doc.createElement('img');
+        img.src = card.dataUrl;
+        img.style.width = `${card.widthMm}mm`;
+        img.style.height = `${card.heightMm}mm`;
+        doc.body.appendChild(img);
+      }
+    }
+
+    // Trigger print after images render
+    printWindow.onload = () => {
+      setTimeout(() => printWindow.print(), 300);
+    };
+    // Fallback: if onload already fired (data URLs load synchronously)
+    setTimeout(() => printWindow.print(), 500);
   };
 
   const handleSavePdf = () => {

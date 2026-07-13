@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useCardStore } from '../store/cardStore';
+import { useCardCanvas } from '../context/CardCanvasContext';
 import { cardTemplates } from '../data/templates';
 import { FilePlus, Trash2, Undo2, Redo2, Type, Box, Sparkles, Minus, Download, Save, FolderOpen, Printer } from 'lucide-react';
 
 export function Toolbar() {
   const { loadTemplate, clearProject, undo, redo, canUndo, canRedo, addTextLayer, addProductionBox, addEffectBox, addLine, cardName, setCardName, saveProject, getSavedProjects, loadProject, deleteProject } = useCardStore();
+  const canvasCtx = useCardCanvas();
   const [showTemplates, setShowTemplates] = useState(false);
   const [showLoadMenu, setShowLoadMenu] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
@@ -19,8 +21,7 @@ export function Toolbar() {
   }, [showNamePrompt]);
 
   const handleExport = () => {
-    const exportFn = (window as any).__exportCardAsPng;
-    if (exportFn) exportFn();
+    canvasCtx.exportCardAsPng.current?.();
   };
 
   const handleSave = () => {
@@ -167,8 +168,7 @@ export function Toolbar() {
           <Download size={14} /> Export PNG
         </button>
         <button className="toolbar-btn toolbar-btn-primary" onClick={() => {
-          const printFn = (window as any).__printCardAsPdf;
-          if (printFn) printFn();
+          canvasCtx.printCardAsPdf.current?.();
         }} title="Print as A4 PDF with correct card size">
           <Printer size={14} /> Print PDF
         </button>

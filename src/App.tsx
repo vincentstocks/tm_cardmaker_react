@@ -6,23 +6,25 @@ import { AssetPicker } from './components/AssetPicker';
 import { PropertyEditor } from './components/PropertyEditor';
 import { TemplateSelector } from './components/TemplateSelector';
 import { PrintDialog } from './components/PrintDialog';
+import { CardCanvasProvider, useCardCanvas } from './context/CardCanvasContext';
 import { useCardStore } from './store/cardStore';
 import { Grid3x3, Magnet } from 'lucide-react';
 import './App.css';
 
-function App() {
+function AppContent() {
   const { undo, redo, isProjectStarted, selectLayer, deleteLayer, selectedLayerId } = useCardStore();
+  const canvasCtx = useCardCanvas();
   const [showOverlays, setShowOverlays] = useState(true);
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [printDialogCards, setPrintDialogCards] = useState<{name: string; dataUrl: string; widthMm: number; heightMm: number}[] | null>(null);
 
-  // Register the print dialog opener globally so CardCanvas can call it
+  // Register the print dialog opener on context so CardCanvas can call it
   useEffect(() => {
-    (window as any).__openPrintDialog = (cards: {name: string; dataUrl: string; widthMm: number; heightMm: number}[]) => {
+    canvasCtx.openPrintDialog.current = (cards) => {
       setPrintDialogCards(cards);
     };
-    return () => { delete (window as any).__openPrintDialog; };
-  }, []);
+    return () => { canvasCtx.openPrintDialog.current = null; };
+  }, [canvasCtx]);
 
   const handleCanvasAreaClick = (e: React.MouseEvent) => {
     // Only deselect if clicking directly on the canvas-area background, not its children
@@ -109,6 +111,14 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <CardCanvasProvider>
+      <AppContent />
+    </CardCanvasProvider>
   );
 }
 

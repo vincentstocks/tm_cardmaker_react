@@ -2,6 +2,7 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import { Stage, Layer as KonvaLayer, Line } from 'react-konva';
 import Konva from 'konva';
 import { useCardStore } from '../store/cardStore';
+import { useCardCanvas } from '../context/CardCanvasContext';
 import { BlockLayerRenderer } from './layers/BlockLayerRenderer';
 import { TextLayerRenderer } from './layers/TextLayerRenderer';
 import { ProductionLayerRenderer } from './layers/ProductionLayerRenderer';
@@ -182,6 +183,7 @@ function getLayerBounds(layer: any, scaleFactor: number) {
 export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanvasProps) {
   const stageRef = useRef<Konva.Stage>(null);
   const { layers, selectedLayerId, selectLayer, updateLayer, cardName } = useCardStore();
+  const canvasCtx = useCardCanvas();
   const baseLayer = layers.find((l) => l.type === 'base') as BaseLayer | undefined;
   const stageWidth = baseLayer ? baseLayer.width * SCALE_FACTOR : CARD_WIDTH_PX * SCALE_FACTOR;
   const stageHeight = baseLayer ? baseLayer.height * SCALE_FACTOR : CARD_HEIGHT_PX * SCALE_FACTOR;
@@ -395,11 +397,11 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
     }, 100);
   }, [baseLayer, selectLayer, cardName]);
 
-  // Expose export function globally for the toolbar
+  // Register export function on context for the toolbar
   useEffect(() => {
-    (window as any).__exportCardAsPng = exportAsPng;
-    return () => { delete (window as any).__exportCardAsPng; };
-  }, [exportAsPng]);
+    canvasCtx.exportCardAsPng.current = exportAsPng;
+    return () => { canvasCtx.exportCardAsPng.current = null; };
+  }, [exportAsPng, canvasCtx]);
 
   // Print as A4 PDF with correct physical card size
   const printAsPdf = useCallback(() => {
@@ -426,14 +428,14 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
       const cardHeightMm = isLandscape ? 69.9 : 95.3;
 
       // Open print dialog
-      (window as any).__openPrintDialog?.([{ name: cardName.trim() || 'Current card', dataUrl, widthMm: cardWidthMm, heightMm: cardHeightMm }]);
+      canvasCtx.openPrintDialog.current?.([{ name: cardName.trim() || 'Current card', dataUrl, widthMm: cardWidthMm, heightMm: cardHeightMm }]);
     }, 100);
   }, [baseLayer, selectLayer, cardName]);
 
   useEffect(() => {
-    (window as any).__printCardAsPdf = printAsPdf;
-    return () => { delete (window as any).__printCardAsPdf; };
-  }, [printAsPdf]);
+    canvasCtx.printCardAsPdf.current = printAsPdf;
+    return () => { canvasCtx.printCardAsPdf.current = null; };
+  }, [printAsPdf, canvasCtx]);
 
   // Expose a function to get the card as dataUrl (for print dialog)
   const getCardDataUrl = useCallback(() => {
@@ -442,13 +444,13 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
   }, [baseLayer]);
 
   useEffect(() => {
-    (window as any).__getCardDataUrl = getCardDataUrl;
-    (window as any).__konvaStageRef = stageRef;
+    canvasCtx.getCardDataUrl.current = getCardDataUrl;
+    canvasCtx.stageRef.current = stageRef.current;
     return () => {
-      delete (window as any).__getCardDataUrl;
-      delete (window as any).__konvaStageRef;
+      canvasCtx.getCardDataUrl.current = null;
+      canvasCtx.stageRef.current = null;
     };
-  }, [getCardDataUrl]);
+  }, [getCardDataUrl, canvasCtx]);
 
   return (
     <div className="card-canvas-container">

@@ -49,8 +49,35 @@ export function PrintDialog({ initialCards, onClose }: PrintDialogProps) {
     // Load the project
     useCardStore.getState().loadProject(projectName);
 
-    // Wait for render
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Wait for all images on the Konva stage to finish loading.
+    // The useImage hook sets the image attribute on Konva.Image nodes once loaded.
+    // We poll until all Image nodes have a loaded image, with a timeout fallback.
+    await new Promise<void>(resolve => {
+      const maxWait = 10000; // 10s max
+      const pollInterval = 100;
+      let elapsed = 0;
+
+      const check = () => {
+        elapsed += pollInterval;
+        const stage = (window as any).__konvaStageRef?.current;
+        if (stage) {
+          const imageNodes = stage.find('Image');
+          const allLoaded = imageNodes.length > 0 && imageNodes.every((node: any) => node.image());
+          if (allLoaded) {
+            resolve();
+            return;
+          }
+        }
+        if (elapsed >= maxWait) {
+          resolve(); // Give up after timeout
+          return;
+        }
+        setTimeout(check, pollInterval);
+      };
+
+      // Initial delay to let React render the new layers
+      setTimeout(check, 100);
+    });
 
     // Capture the canvas
     const exportFn = (window as any).__getCardDataUrl;

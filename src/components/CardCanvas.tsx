@@ -443,7 +443,11 @@ export function CardCanvas({ showOverlays = true, snapEnabled = true }: CardCanv
 
   useEffect(() => {
     (window as any).__getCardDataUrl = getCardDataUrl;
-    return () => { delete (window as any).__getCardDataUrl; };
+    (window as any).__konvaStageRef = stageRef;
+    return () => {
+      delete (window as any).__getCardDataUrl;
+      delete (window as any).__konvaStageRef;
+    };
   }, [getCardDataUrl]);
 
   return (
